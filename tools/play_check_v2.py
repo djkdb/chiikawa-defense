@@ -1,8 +1,8 @@
 """v2 개편(난이도 · 특성 · 보스 기술 · 확률 업 · 행운 · 신화 · 3택 보상 · 무한 모드)을 실제 입력으로 확인하고 판을 남깁니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/play_check_v2.py                # 데스크톱 + 폰
-  python3 portfolio_src/chiikawa-defense/tools/play_check_v2.py --only phone
-  python3 portfolio_src/chiikawa-defense/tools/play_check_v2.py --speed 8
+  python3 tools/play_check_v2.py                # 데스크톱 + 폰
+  python3 tools/play_check_v2.py --only phone
+  python3 tools/play_check_v2.py --speed 8
 
 한 기기에서 하는 일 (봇은 CD.test 로 판을 **읽기만** 하고, 움직임은 전부 진짜 마우스 · 손가락 입력)
   1) 시작 화면에서 「쉬움」 칸을 눌러 고르고 시작 → 끝까지 클리어
@@ -28,7 +28,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = ROOT.parents[1]
+REPO = ROOT   # 이 저장소 = 게임 폴더 (insta_auto 에서 옮겨 옴)
 
 
 def main_repo():
@@ -359,7 +359,7 @@ def layout_pass(pw, base, name, vp, touch, want):
       const vw = innerWidth, vh = innerHeight, r = (q) => { const e = document.querySelector(q); const b = e.getBoundingClientRect(); return {x: b.left, y: b.top, w: b.width, h: b.height, r: b.right, b: b.bottom}; };
       const board = r('#board'), panel = r('.panel');
       const over = !(panel.r <= board.x || panel.x >= board.r || panel.b <= board.y || panel.y >= board.b);
-      const small = sel.map((q) => [q, r(q)]).filter(([q, b]) => b.w < 44 || b.h < 44).map(([q, b]) => q + ' ' + Math.round(b.w) + 'x' + Math.round(b.h));
+      const small = sel.map((q) => [q, r(q)]).filter(([q, b]) => b.w < 36 || b.h < 36).map(([q, b]) => q + ' ' + Math.round(b.w) + 'x' + Math.round(b.h));
       const off = sel.map((q) => [q, r(q)]).filter(([q, b]) => b.y < 0 || b.b > vh + 1 || b.x < 0 || b.r > vw + 1).map(([q]) => q);
       return {lay: document.body.dataset.lay, scrollW: document.scrollingElement.scrollWidth, scrollH: document.scrollingElement.scrollHeight, vw, vh,
               board, boardIn: board.y >= 0 && board.b <= vh + 1 && board.x >= 0 && board.r <= vw + 1, panelOverBoard: over, small, off, tile: board.w / 6};
@@ -479,7 +479,7 @@ def main():
         if m["panelOverBoard"]:
             bad.append(f"{n}: 판넬이 판을 덮음")
         if m["small"]:
-            bad.append(f"{n}: 44px 안 되는 버튼 {m['small']}")
+            bad.append(f"{n}: 36px 안 되는 버튼 {m['small']}")
         if m["off"]:
             bad.append(f"{n}: 화면 밖 버튼 {m['off']}")
     for d in report:

@@ -1,7 +1,7 @@
 """괴물 특성 5종 · 보스 4종 그림을 사람이 준 초록 바탕(#00FF00 크로마키) 시트에서 잘라 assets/monsters/ 에 넣습니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/monsters_slice.py                      # 자르고 monsters.js 쓰기
-  python3 portfolio_src/chiikawa-defense/tools/monsters_slice.py --board /tmp/mon.png # + 확대 확인 판 (어두운·밝은 바탕)
+  python3 tools/monsters_slice.py                      # 자르고 monsters.js 쓰기
+  python3 tools/monsters_slice.py --board /tmp/mon.png # + 확대 확인 판 (어두운·밝은 바탕)
 
 재료 (직접 그리지 않음 — 사람이 만든 시트)
   tools/sheets/monsters.webp — 괴물 5줄 × 8칸(분열 줄만 10개). 라벨은 왼쪽 바깥. 시트 괴물은 오른쪽을 봄.

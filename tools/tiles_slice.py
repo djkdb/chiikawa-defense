@@ -1,7 +1,7 @@
 """판 타일 · 소품 · 배경 맵 · 표지를 사람이 만든 그림에서 잘라 assets/tiles/ · assets/bg/ 에 넣습니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/tiles_slice.py                       # 자르고 tiles.js 쓰기
-  python3 portfolio_src/chiikawa-defense/tools/tiles_slice.py --board /tmp/tiles.png  # + 확대 확인 판
+  python3 tools/tiles_slice.py                       # 자르고 tiles.js 쓰기
+  python3 tools/tiles_slice.py --board /tmp/tiles.png  # + 확대 확인 판
 
 재료 (직접 그리지 않음)
   tools/sheets/tiles.webp (1536×1024, 바탕 #00FF00) — 6줄:

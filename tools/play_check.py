@@ -1,8 +1,8 @@
 """랜덤 디펜스를 실제 입력(마우스 · 터치)으로 끝까지 해 보고 화면을 남깁니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/play_check.py               # 데스크톱 + 폰
-  python3 portfolio_src/chiikawa-defense/tools/play_check.py --only phone
-  python3 portfolio_src/chiikawa-defense/tools/play_check.py --speed 6     # 배속 (기본 6)
+  python3 tools/play_check.py               # 데스크톱 + 폰
+  python3 tools/play_check.py --only phone
+  python3 tools/play_check.py --speed 6     # 배속 (기본 6)
 
 한 기기에서 하는 일
   1) 시작 화면 → 「시작하기」
@@ -28,7 +28,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = ROOT.parents[1]
+REPO = ROOT   # 이 저장소 = 게임 폴더 (insta_auto 에서 옮겨 옴)
 OUT = REPO / "output" / "chiikawa-defense-check"
 REF = Path("/root/.claude/uploads/1cdfdb2d-7a1e-5e8e-8067-c8aa8cb35f79/f9175142-image.jpg")
 

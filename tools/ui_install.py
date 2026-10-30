@@ -1,6 +1,6 @@
-"""공용 UI 키트(portfolio_src/_chiikawa_tools/ui/, 다른 작업 — slice_ui.py)를 디펜스에 입힙니다.
+"""공용 UI 키트(_chiikawa_tools/ui/, 다른 작업 — slice_ui.py)를 디펜스에 입힙니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/ui_install.py
+  python3 tools/ui_install.py
 
 하는 일
  1) 아래 MAP 에 적힌 부품 PNG 와 아이콘을 assets/ui/ 로 복사 (키트 원본은 건드리지 않음)
@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-KIT = ROOT.parent / "_chiikawa_tools" / "ui"
+KIT = ROOT / "_chiikawa_tools" / "ui"
 DST = ROOT / "assets" / "ui"
 HTML = ROOT / "index.html"
 START, END = "/* ui-kit:defense:start — tools/ui_install.py 가 씀, 손으로 고치지 않음 */", "/* ui-kit:defense:end */"

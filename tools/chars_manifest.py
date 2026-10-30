@@ -1,9 +1,9 @@
 """캐릭터 프레임 목록(assets/chars/chars.js)을 만듭니다.
 
-  python3 portfolio_src/chiikawa-defense/tools/chars_manifest.py          # chars.js 다시 쓰기
-  python3 portfolio_src/chiikawa-defense/tools/chars_manifest.py --board /tmp/frames.png  # 고른 프레임 판도
+  python3 tools/chars_manifest.py          # chars.js 다시 쓰기
+  python3 tools/chars_manifest.py --board /tmp/frames.png  # 고른 프레임 판도
 
-여덟 명 모두 사람이 새로 만든 초록 바탕 시트에서 portfolio_src/_chiikawa_tools/slice_green.py 가 잘라 넣은 56칸 도트입니다
+여덟 명 모두 사람이 새로 만든 초록 바탕 시트에서 _chiikawa_tools/slice_green.py 가 잘라 넣은 56칸 도트입니다
 (assets/chars/<이름>/ 의 PNG · frames.json). 여기서는 frames.json 에서 디펜스가 쓸 것을 골라 옮겨 적기만 합니다(PNG 를 고치지 않음).
   k = 그림 1px 이 판의 몇 도트인지(몸 0.5 · 초상 64/폭) — 게임은 w·h·ax·ay 에 k 를 곱해 같은 키로 그림.
   친구마다 「공격 이펙트」 줄(fx_0..7, 캐릭터 색)이 있어 투사체(shot) · 맞은 자리(hit) · 스킬 터짐(fx)을 거기서 고르고,

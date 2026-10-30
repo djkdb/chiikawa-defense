@@ -116,7 +116,7 @@ UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 
 - 판: `tools/sheets/tiles.webp` 를 같은 좁은 키로 잘라 괴물 길 = 흙길 타일(모서리 한 장을 뒤집어 네 방향), 친구 자리 = 풀밭 칸(대부분 보통 · 가끔 꽃 칸),
   고른 친구 = 노랑 칸, 침묵으로 봉인된 친구 · 침묵 예고 칸 = 보라 칸, 출발점 = 괴물 굴, 위 여백 = 울타리 · 덤불 · 꽃.
 - 배경: `tools/sheets/maps.webp` 의 2×2 중 낮 들판(쉬움 · 보통) · 밤 숲(어려움 · 지옥, 판도 살짝 푸르게) · 표지(시작 화면 위). 왼쪽 아래(자격증 게임 것)는 안 씀.
-- UI 키트: 공용 키트(`../_chiikawa_tools/ui/`, 자격증 게임과 같은 종이 · 나무 결 부품)를 `tools/ui_install.py` 가 `assets/ui/` 로 복사하고,
+- UI 키트: 공용 키트(`_chiikawa_tools/ui/`, 자격증 게임과 같은 종이 · 나무 결 부품)를 `tools/ui_install.py` 가 `assets/ui/` 로 복사하고,
   index.html 의 `ui-kit:defense` 블록에 「기존 클래스 → 부품」 9-slice CSS 를 씀(버튼 · 알약 · 판넬 · 덮개 종이 · 난이도 · 보상 카드 · 레시피 칸 · 클로버/자물쇠 아이콘. 크림 버튼은 안 쓰고 패널은 흰 종이로 바꿔 복사).
   키트가 바뀌면 `python3 tools/ui_install.py` 만 다시.
 

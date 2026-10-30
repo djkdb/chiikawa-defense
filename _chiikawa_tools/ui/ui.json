@@ -1,0 +1,867 @@
+{
+ "_": "slice_ui.py 가 만듦 — 손으로 고치지 않음. slice = 9-slice 테두리 [위, 오른, 아래, 왼] 원본 px (CSS: border-image-source 이 PNG · border-image-slice 이 값 fill · border-width 는 이 값 × 화면 배율). green_left = 불투명 픽셀 중 초록이 남은 수(연두가 원래 있는 부품 말고는 0).",
+ "sheet": "sheets/ui_kit.webp",
+ "parts": {
+  "btn_cream": {
+   "file": "btn_cream.png",
+   "w": 162,
+   "h": 75,
+   "kind": "slice",
+   "sheet_xy": [
+    35,
+    43
+   ],
+   "slice": [
+    23,
+    26,
+    22,
+    27
+   ],
+   "green_left": 0
+  },
+  "btn_cream_down": {
+   "file": "btn_cream_down.png",
+   "w": 156,
+   "h": 73,
+   "kind": "slice",
+   "sheet_xy": [
+    39,
+    128
+   ],
+   "slice": [
+    23,
+    30,
+    23,
+    24
+   ],
+   "green_left": 0
+  },
+  "btn_cream_off": {
+   "file": "btn_cream_off.png",
+   "w": 157,
+   "h": 71,
+   "kind": "slice",
+   "sheet_xy": [
+    39,
+    212
+   ],
+   "slice": [
+    22,
+    25,
+    23,
+    25
+   ],
+   "green_left": 0
+  },
+  "btn_yellow": {
+   "file": "btn_yellow.png",
+   "w": 161,
+   "h": 75,
+   "kind": "slice",
+   "sheet_xy": [
+    224,
+    43
+   ],
+   "slice": [
+    24,
+    29,
+    22,
+    32
+   ],
+   "green_left": 0
+  },
+  "btn_yellow_down": {
+   "file": "btn_yellow_down.png",
+   "w": 152,
+   "h": 73,
+   "kind": "slice",
+   "sheet_xy": [
+    229,
+    128
+   ],
+   "slice": [
+    22,
+    24,
+    23,
+    24
+   ],
+   "green_left": 0
+  },
+  "btn_yellow_off": {
+   "file": "btn_yellow_off.png",
+   "w": 153,
+   "h": 71,
+   "kind": "slice",
+   "sheet_xy": [
+    229,
+    212
+   ],
+   "slice": [
+    22,
+    24,
+    23,
+    24
+   ],
+   "green_left": 0
+  },
+  "btn_sky": {
+   "file": "btn_sky.png",
+   "w": 158,
+   "h": 75,
+   "kind": "slice",
+   "sheet_xy": [
+    409,
+    43
+   ],
+   "slice": [
+    25,
+    28,
+    23,
+    30
+   ],
+   "green_left": 0
+  },
+  "btn_sky_down": {
+   "file": "btn_sky_down.png",
+   "w": 149,
+   "h": 73,
+   "kind": "slice",
+   "sheet_xy": [
+    414,
+    128
+   ],
+   "slice": [
+    22,
+    23,
+    22,
+    23
+   ],
+   "green_left": 0
+  },
+  "btn_sky_off": {
+   "file": "btn_sky_off.png",
+   "w": 152,
+   "h": 71,
+   "kind": "slice",
+   "sheet_xy": [
+    413,
+    212
+   ],
+   "slice": [
+    21,
+    25,
+    22,
+    24
+   ],
+   "green_left": 0
+  },
+  "btn_pink": {
+   "file": "btn_pink.png",
+   "w": 158,
+   "h": 75,
+   "kind": "slice",
+   "sheet_xy": [
+    589,
+    43
+   ],
+   "slice": [
+    24,
+    28,
+    21,
+    31
+   ],
+   "green_left": 0
+  },
+  "btn_pink_down": {
+   "file": "btn_pink_down.png",
+   "w": 150,
+   "h": 73,
+   "kind": "slice",
+   "sheet_xy": [
+    593,
+    128
+   ],
+   "slice": [
+    23,
+    28,
+    23,
+    23
+   ],
+   "green_left": 0
+  },
+  "btn_pink_off": {
+   "file": "btn_pink_off.png",
+   "w": 152,
+   "h": 70,
+   "kind": "slice",
+   "sheet_xy": [
+    593,
+    213
+   ],
+   "slice": [
+    21,
+    23,
+    21,
+    23
+   ],
+   "green_left": 0
+  },
+  "tab_pink": {
+   "file": "tab_pink.png",
+   "w": 180,
+   "h": 102,
+   "kind": "slice",
+   "sheet_xy": [
+    789,
+    38
+   ],
+   "slice": [
+    48,
+    21,
+    33,
+    123
+   ],
+   "tape_box": [
+    50,
+    3,
+    121,
+    46
+   ],
+   "green_left": 0
+  },
+  "tab_sky": {
+   "file": "tab_sky.png",
+   "w": 173,
+   "h": 101,
+   "kind": "slice",
+   "sheet_xy": [
+    988,
+    38
+   ],
+   "slice": [
+    45,
+    21,
+    33,
+    120
+   ],
+   "tape_box": [
+    53,
+    4,
+    118,
+    43
+   ],
+   "green_left": 0
+  },
+  "tab_yellow": {
+   "file": "tab_yellow.png",
+   "w": 181,
+   "h": 106,
+   "kind": "slice",
+   "sheet_xy": [
+    792,
+    167
+   ],
+   "slice": [
+    64,
+    11,
+    8,
+    128
+   ],
+   "tape_box": [
+    51,
+    2,
+    126,
+    43
+   ],
+   "green_left": 0
+  },
+  "tab_green": {
+   "file": "tab_green.png",
+   "w": 173,
+   "h": 107,
+   "kind": "slice",
+   "sheet_xy": [
+    996,
+    168
+   ],
+   "slice": [
+    44,
+    19,
+    35,
+    124
+   ],
+   "tape_box": [
+    50,
+    1,
+    122,
+    42
+   ],
+   "green_left": 1473
+  },
+  "spark": {
+   "file": "spark.png",
+   "w": 28,
+   "h": 35,
+   "kind": "icon",
+   "sheet_xy": [
+    764,
+    175
+   ],
+   "green_left": 0
+  },
+  "dash_frame": {
+   "file": "dash_frame.png",
+   "w": 320,
+   "h": 276,
+   "kind": "slice",
+   "sheet_xy": [
+    1189,
+    27
+   ],
+   "slice": [
+    73,
+    85,
+    77,
+    87
+   ],
+   "green_left": 0
+  },
+  "panel_curl": {
+   "file": "panel_curl.png",
+   "w": 314,
+   "h": 184,
+   "kind": "slice",
+   "sheet_xy": [
+    33,
+    335
+   ],
+   "slice": [
+    49,
+    43,
+    52,
+    49
+   ],
+   "green_left": 0
+  },
+  "panel_tape": {
+   "file": "panel_tape.png",
+   "w": 188,
+   "h": 188,
+   "kind": "whole",
+   "sheet_xy": [
+    369,
+    327
+   ],
+   "green_left": 0
+  },
+  "panel_wide": {
+   "file": "panel_wide.png",
+   "w": 317,
+   "h": 184,
+   "kind": "slice",
+   "sheet_xy": [
+    577,
+    335
+   ],
+   "slice": [
+    46,
+    46,
+    29,
+    49
+   ],
+   "green_left": 0
+  },
+  "bubble_oval": {
+   "file": "bubble_oval.png",
+   "w": 159,
+   "h": 98,
+   "kind": "slice",
+   "sheet_xy": [
+    915,
+    329
+   ],
+   "slice": [
+    30,
+    44,
+    40,
+    60
+   ],
+   "green_left": 0
+  },
+  "bubble_small": {
+   "file": "bubble_small.png",
+   "w": 124,
+   "h": 90,
+   "kind": "slice",
+   "sheet_xy": [
+    1090,
+    337
+   ],
+   "slice": [
+    27,
+    58,
+    38,
+    40
+   ],
+   "green_left": 0
+  },
+  "bubble_shout": {
+   "file": "bubble_shout.png",
+   "w": 127,
+   "h": 106,
+   "kind": "slice",
+   "sheet_xy": [
+    1229,
+    326
+   ],
+   "slice": [
+    37,
+    73,
+    60,
+    42
+   ],
+   "green_left": 0
+  },
+  "bubble_cloud": {
+   "file": "bubble_cloud.png",
+   "w": 135,
+   "h": 101,
+   "kind": "slice",
+   "sheet_xy": [
+    1370,
+    325
+   ],
+   "slice": [
+    30,
+    76,
+    52,
+    34
+   ],
+   "green_left": 0
+  },
+  "bubble_think": {
+   "file": "bubble_think.png",
+   "w": 146,
+   "h": 94,
+   "kind": "slice",
+   "sheet_xy": [
+    913,
+    441
+   ],
+   "slice": [
+    24,
+    37,
+    45,
+    49
+   ],
+   "green_left": 0
+  },
+  "bubble_hex": {
+   "file": "bubble_hex.png",
+   "w": 128,
+   "h": 94,
+   "kind": "slice",
+   "sheet_xy": [
+    1079,
+    439
+   ],
+   "slice": [
+    35,
+    67,
+    53,
+    43
+   ],
+   "green_left": 0
+  },
+  "bubble_round": {
+   "file": "bubble_round.png",
+   "w": 113,
+   "h": 90,
+   "kind": "slice",
+   "sheet_xy": [
+    1228,
+    447
+   ],
+   "slice": [
+    21,
+    55,
+    37,
+    32
+   ],
+   "green_left": 0
+  },
+  "bubble_jag": {
+   "file": "bubble_jag.png",
+   "w": 139,
+   "h": 84,
+   "kind": "slice",
+   "sheet_xy": [
+    1368,
+    441
+   ],
+   "slice": [
+    47,
+    21,
+    23,
+    30
+   ],
+   "green_left": 0
+  },
+  "sign_post": {
+   "file": "sign_post.png",
+   "w": 162,
+   "h": 121,
+   "kind": "slice",
+   "sheet_xy": [
+    893,
+    550
+   ],
+   "slice": [
+    41,
+    80,
+    43,
+    80
+   ],
+   "green_left": 0
+  },
+  "sign_wide": {
+   "file": "sign_wide.png",
+   "w": 189,
+   "h": 116,
+   "kind": "slice",
+   "sheet_xy": [
+    1092,
+    553
+   ],
+   "slice": [
+    38,
+    46,
+    51,
+    44
+   ],
+   "green_left": 0
+  },
+  "sign_arrow": {
+   "file": "sign_arrow.png",
+   "w": 182,
+   "h": 108,
+   "kind": "slice",
+   "sheet_xy": [
+    1329,
+    557
+   ],
+   "slice": [
+    58,
+    96,
+    45,
+    32
+   ],
+   "green_left": 0
+  },
+  "icon_coin": {
+   "file": "icon_coin.png",
+   "w": 77,
+   "h": 76,
+   "kind": "icon",
+   "sheet_xy": [
+    25,
+    696
+   ],
+   "green_left": 0
+  },
+  "icon_clover": {
+   "file": "icon_clover.png",
+   "w": 67,
+   "h": 73,
+   "kind": "icon",
+   "sheet_xy": [
+    119,
+    697
+   ],
+   "green_left": 1806
+  },
+  "icon_star": {
+   "file": "icon_star.png",
+   "w": 74,
+   "h": 71,
+   "kind": "icon",
+   "sheet_xy": [
+    203,
+    698
+   ],
+   "green_left": 0
+  },
+  "icon_heart": {
+   "file": "icon_heart.png",
+   "w": 64,
+   "h": 57,
+   "kind": "icon",
+   "sheet_xy": [
+    293,
+    709
+   ],
+   "green_left": 0
+  },
+  "icon_lock": {
+   "file": "icon_lock.png",
+   "w": 59,
+   "h": 76,
+   "kind": "icon",
+   "sheet_xy": [
+    383,
+    693
+   ],
+   "green_left": 0
+  },
+  "icon_sound_on": {
+   "file": "icon_sound_on.png",
+   "w": 89,
+   "h": 72,
+   "kind": "icon",
+   "sheet_xy": [
+    471,
+    697
+   ],
+   "green_left": 0
+  },
+  "icon_sound_off": {
+   "file": "icon_sound_off.png",
+   "w": 83,
+   "h": 70,
+   "kind": "icon",
+   "sheet_xy": [
+    580,
+    699
+   ],
+   "green_left": 0
+  },
+  "icon_note": {
+   "file": "icon_note.png",
+   "w": 63,
+   "h": 69,
+   "kind": "icon",
+   "sheet_xy": [
+    683,
+    699
+   ],
+   "green_left": 0
+  },
+  "icon_gear": {
+   "file": "icon_gear.png",
+   "w": 76,
+   "h": 78,
+   "kind": "icon",
+   "sheet_xy": [
+    765,
+    693
+   ],
+   "green_left": 0
+  },
+  "icon_back": {
+   "file": "icon_back.png",
+   "w": 77,
+   "h": 66,
+   "kind": "icon",
+   "sheet_xy": [
+    858,
+    701
+   ],
+   "green_left": 0
+  },
+  "icon_close": {
+   "file": "icon_close.png",
+   "w": 64,
+   "h": 64,
+   "kind": "icon",
+   "sheet_xy": [
+    962,
+    701
+   ],
+   "green_left": 0
+  },
+  "icon_book": {
+   "file": "icon_book.png",
+   "w": 133,
+   "h": 88,
+   "kind": "icon",
+   "sheet_xy": [
+    1046,
+    693
+   ],
+   "green_left": 0
+  },
+  "icon_clock": {
+   "file": "icon_clock.png",
+   "w": 95,
+   "h": 95,
+   "kind": "icon",
+   "sheet_xy": [
+    1194,
+    689
+   ],
+   "green_left": 0
+  },
+  "icon_trophy": {
+   "file": "icon_trophy.png",
+   "w": 106,
+   "h": 98,
+   "kind": "icon",
+   "sheet_xy": [
+    1299,
+    689
+   ],
+   "green_left": 0
+  },
+  "icon_crown": {
+   "file": "icon_crown.png",
+   "w": 96,
+   "h": 86,
+   "kind": "icon",
+   "sheet_xy": [
+    1415,
+    691
+   ],
+   "green_left": 0
+  },
+  "frame_gray": {
+   "file": "frame_gray.png",
+   "w": 167,
+   "h": 156,
+   "kind": "slice",
+   "sheet_xy": [
+    24,
+    815
+   ],
+   "slice": [
+    47,
+    37,
+    40,
+    43
+   ],
+   "green_left": 0
+  },
+  "frame_sky": {
+   "file": "frame_sky.png",
+   "w": 161,
+   "h": 157,
+   "kind": "slice",
+   "sheet_xy": [
+    201,
+    814
+   ],
+   "slice": [
+    46,
+    36,
+    38,
+    42
+   ],
+   "green_left": 0
+  },
+  "frame_purple": {
+   "file": "frame_purple.png",
+   "w": 162,
+   "h": 156,
+   "kind": "slice",
+   "sheet_xy": [
+    373,
+    815
+   ],
+   "slice": [
+    47,
+    36,
+    39,
+    42
+   ],
+   "green_left": 0
+  },
+  "frame_yellow": {
+   "file": "frame_yellow.png",
+   "w": 170,
+   "h": 162,
+   "kind": "slice",
+   "sheet_xy": [
+    547,
+    813
+   ],
+   "slice": [
+    48,
+    40,
+    43,
+    44
+   ],
+   "green_left": 0
+  },
+  "frame_rainbow": {
+   "file": "frame_rainbow.png",
+   "w": 179,
+   "h": 160,
+   "kind": "slice",
+   "sheet_xy": [
+    730,
+    813
+   ],
+   "slice": [
+    48,
+    40,
+    42,
+    44
+   ],
+   "green_left": 962
+  },
+  "tape_pink": {
+   "file": "tape_pink.png",
+   "w": 71,
+   "h": 43,
+   "kind": "tape",
+   "sheet_xy": [
+    839,
+    41
+   ],
+   "green_left": 0
+  },
+  "tape_sky": {
+   "file": "tape_sky.png",
+   "w": 65,
+   "h": 39,
+   "kind": "tape",
+   "sheet_xy": [
+    1041,
+    42
+   ],
+   "green_left": 0
+  },
+  "tape_yellow": {
+   "file": "tape_yellow.png",
+   "w": 75,
+   "h": 41,
+   "kind": "tape",
+   "sheet_xy": [
+    843,
+    169
+   ],
+   "green_left": 0
+  },
+  "tape_green": {
+   "file": "tape_green.png",
+   "w": 72,
+   "h": 41,
+   "kind": "tape",
+   "sheet_xy": [
+    1046,
+    169
+   ],
+   "green_left": 1473
+  },
+  "tape_blue": {
+   "file": "tape_blue.png",
+   "w": 46,
+   "h": 29,
+   "kind": "tape",
+   "sheet_xy": [
+    443,
+    331
+   ],
+   "green_left": 0
+  }
+ }
+}
