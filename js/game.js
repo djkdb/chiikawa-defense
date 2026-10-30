@@ -156,7 +156,7 @@
   function card(slot, ch, g, big, delay) {
     const p = slotXY(slot);
     if (big) view.cards = view.cards.filter((c) => !c.big);
-    view.cards.push({ ch, g, big, x: p.x, y: p.y, t: -(delay || 0), life: big ? 1.15 : 0.8 });
+    view.cards.push({ ch, g, big, x: p.x, y: p.y, t: -(delay || 0), life: big ? 0.95 : 0.8 });
   }
   const MON_COLS = ['#9d8cc6', '#7a68a6', '#ffd0dc', '#fff3b0', '#cfe7ff'];
   const TRAIT_COL = { fast: '#ffe08a', armor: '#b9bdc6', regen: '#9be07a', split: '#ffb3c8', revive: '#cfefff' };
@@ -180,7 +180,7 @@
         case 'summon': {
           const u = g.slots[e.slot].u, a = an(u), p = slotXY(e.slot);
           a.pop = 1; a.flash = 0.8;
-          card(e.slot, e.ch, e.g, e.g >= 1);
+          card(e.slot, e.ch, e.g, e.g >= 3);   // 큰 카드는 전설 이상만 — 판 가운데를 자주 가려서 (사람: 「합성 배너가 너무 커서 게임 화면을 가려」)
           view.fx.push({ type: 'pillar', x: p.x, y: p.y, col: GR[e.g].color, t: 0, life: 0.55 });
           sparks(p.x, p.y, GR[e.g].key, 6 + e.g * 4, 12);
           S.play('summon');
@@ -289,7 +289,7 @@
           view.fx.push({ type: 'ring', x: p.x, y: p.y, col: GR[e.g].color, r0: 4, r1: 30, t: -0.2, life: 0.45, w: 3 });
           view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#ffffff', r0: 2, r1: 20, t: -0.18, life: 0.3, w: 2 });
           setTimeout(() => sparks(p.x, p.y, GR[e.g].key, 8 + e.g * 5, 14), 200);
-          card(e.slot, e.ch, e.g, true, 0.18);
+          card(e.slot, e.ch, e.g, e.g >= 3, 0.18);
           S.play('merge'); vib(e.g >= 3 ? 40 : 15);
           hitStop(e.g >= 3 ? 0.14 : 0.05);
           flashScreen(GR[e.g].glow, e.g >= 3 ? 0.55 : 0.28, e.g >= 3 ? 0.35 : 0.16);
@@ -775,12 +775,13 @@
       x.restore();
       return;
     }
-    // 큰 카드: 판 가운데, 원본 크기(칸 64px 일 때 ×2)
-    const cx = BW / 2, cy = (ROWS * TILE) / 2 - 10, W = 92, H = 104;
-    const pop = k < 0.18 ? 0.6 + 0.5 * ease : k < 0.28 ? 1.1 - (k - 0.18) : 1;
+    // 큰 카드(전설·신화만): 판 가운데가 아니라 합성한 칸 바로 위에 작게 — 판을 가리지 않게
+    const W = 92, H = 104, CS = 0.55, half = (H + 6) * CS / 2;
+    const cx = Math.max(W * CS / 2 + 4, Math.min(BW - W * CS / 2 - 4, c.x)), cy = Math.max(half + 4, c.y - TILE * 0.9 - k * 8);
+    const pop = (k < 0.18 ? 0.6 + 0.5 * ease : k < 0.28 ? 1.1 - (k - 0.18) : 1) * CS;
     x.translate(cx, cy); x.scale(pop, pop);
     x.save(); x.rotate(view.t * 0.7); x.globalAlpha = fade * 0.5; x.fillStyle = gr.glow;
-    for (let i = 0; i < 12; i++) { x.rotate(Math.PI / 6); x.beginPath(); x.moveTo(0, 0); x.lineTo(-7, -86); x.lineTo(7, -86); x.closePath(); x.fill(); }
+    for (let i = 0; i < 12; i++) { x.rotate(Math.PI / 6); x.beginPath(); x.moveTo(0, 0); x.lineTo(-7, -70); x.lineTo(7, -70); x.closePath(); x.fill(); }
     x.restore();
     x.fillStyle = A.INK; A.roundRect(x, -W / 2 - 3, -H / 2 - 3, W + 6, H + 6, 12); x.fill();
     x.fillStyle = c.g >= 4 ? rainbow(x, -W / 2, -H / 2, W, H, 10, view.t) : gr.color; A.roundRect(x, -W / 2, -H / 2, W, H, 10); x.fill();
