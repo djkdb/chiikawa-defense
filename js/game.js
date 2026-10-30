@@ -130,6 +130,7 @@
     cvs.width = Math.round(tile * COLS * dpr);
     cvs.height = Math.round(((tile * BH) / TILE) * dpr);
     s = cvs.width / BW;
+    $('boardWrap').style.setProperty('--tile', tile + 'px');   // 처음 안내 말풍선이 아래 길 한 줄 위에 앉도록 (index.html #coach)
     // 넓은 배치: 윗줄을 판 + 옆 판넬 폭에 맞춤 (화면 끝까지 늘어나 보이지 않게)
     const hudEl = document.querySelector('.hud');
     hudEl.style.maxWidth = L === 'wide' ? tile * COLS + frame + 14 + (document.querySelector('.panel').offsetWidth || 340) + 'px' : '';

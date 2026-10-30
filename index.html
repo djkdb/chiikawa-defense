@@ -353,8 +353,8 @@ kbd{display:none;font:10px var(--f);border:1.5px solid var(--ink);border-bottom-
 #loading .lbar{width:min(280px,70vw);height:14px;border:3px solid var(--ink);border-radius:9px;background:#fff;overflow:hidden}
 #loading .lbar i{display:block;height:100%;width:0;background:#9dd67f;transition:width .2s}
 #loading p{margin:0;font-size:13px;color:var(--ink);max-width:80vw;text-align:center}
-/* 처음 1회 안내 (판 위 말풍선 — 판 입력은 막지 않음) */
-#coach{position:absolute;left:8px;right:8px;top:8px;z-index:3;display:flex;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:var(--ui-shadow);font-size:13px;line-height:1.4;pointer-events:none}
+/* 처음 1회 안내 (판 위 말풍선 — 판 입력은 막지 않음). 판 가장자리는 전부 괴물 길이라 안쪽 아래(아래 길 한 줄 위)에 둠 — 괴물이 나오는 윗길을 가리지 않게 */
+#coach{position:absolute;left:8px;right:8px;bottom:calc(var(--tile,48px) + 10px);z-index:3;display:flex;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:var(--ui-shadow);font-size:13px;line-height:1.4;pointer-events:none}
 #coach b{color:#2f7ad8}
 #coach button{pointer-events:auto;flex:none;min-height:44px;min-width:64px;font-size:12px}
 .coach-on{position:relative;z-index:1;animation:coachGlow 1s ease-in-out infinite}
