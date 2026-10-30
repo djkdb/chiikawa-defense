@@ -16,7 +16,7 @@
 <body>
 <!-- 그림 확인용 — 게임에는 안 쓰입니다. tools/play_check.py 가 이 페이지를 찍어 판에 붙입니다. -->
 <h2>괴물 (×6)</h2><div class="row" id="mon"></div>
-<h2>캐릭터 (assets/chars/*.png · 없으면 자리표시, ×4)</h2><div class="row" id="chars"></div>
+<h2>캐릭터 (사람이 준 팬 도트 시트를 자른 assets/chars/*/*.png · chars.js 목록)</h2><div class="row" id="chars"></div>
 <h2>투사체 · 동전 · 반짝이 (×6)</h2><div class="row" id="shots"></div>
 <h2>판 바닥 (×3)</h2><div class="row" id="floor"></div>
 <script src="../js/table.js"></script>
@@ -46,7 +46,13 @@
   for (const k in A.spark) put('shots', A.spark[k], 6, k);
   put('floor', A.floor, 3, T.board.cols + '×' + T.board.rows);
   A.loadChars(T.chars, () => {
-    T.chars.forEach((c) => { const C = A.char[c.id]; put('chars', C.img, C.real ? 4 : 4, c.name + (C.real ? '' : ' (자리표시)')); });
+    T.chars.forEach((c) => {
+      const C = A.char[c.id];
+      put('chars', C.portrait.img, 2, c.name + (C.real ? ' 초상' : ' (자리표시)'));
+      ['idle', 'attack', 'skill'].forEach((k) => C[k].forEach((f, i) => put('chars', f.img, 3, k + i)));
+      if (C.shot) put('chars', C.shot.img, 3, '투사체');
+      if (C.fx) put('chars', C.fx.img, 3, '스킬 효과');
+    });
     document.body.dataset.ready = '1';
   });
 </script>

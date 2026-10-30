@@ -1,7 +1,8 @@
 /* 그림 — 괴물 · 길 · 바닥 · 투사체 · 아이콘을 여기서 직접 그립니다 (공식 그림 파일 없음).
    방법: 작은 캔버스(1칸 = 32 도트)에 둥근 도형을 그린 뒤 → 반투명 가장자리를 없애고 팔레트 색으로 맞춰(양자화)
    또렷한 도트로 만듭니다. 손으로 도트 배열을 적으면 곡선이 울퉁불퉁해지기 때문.
-   캐릭터는 사람이 준 도트 시트에서 자른 `assets/chars/<id>.png` 를 불러 씁니다 — 없으면 단색 동그라미 자리표시. */
+   캐릭터만은 그리지 않습니다 — 사람이 준 팬 도트 시트를 자른 `assets/chars/<id>/*.png` (목록은 chars.js) 를 그대로 씁니다.
+   (직접 그린 캐릭터는 「치이카와가 아니야」 라는 말을 들었음. 파일을 못 불러온 경우에만 이름 첫 글자 동그라미) */
 (function () {
   const CD = (window.CD = window.CD || {});
   const TILE = 32;               // 한 칸 = 32 도트
@@ -290,6 +291,22 @@
     // 반투명 쓰지 않도록 정리
     return c;
   }
+  // 판 위 여백 띠: 풀밭 + 나무 울타리 (보스가 윗길에 서도 머리가 들어갈 자리)
+  function topStrip(W, H) {
+    const c = cv(W, H), x = c.getContext('2d');
+    x.fillStyle = FLOOR.grassB; x.fillRect(0, 0, W, H);
+    for (let i = 0; i < W; i += 4) { x.fillStyle = FLOOR.grassD; x.fillRect(i + ((i * 7) % 3), 3 + ((i * 5) % 7), 1, 2); }
+    // 울타리 말뚝 · 가로대
+    const y0 = H - 13;
+    x.fillStyle = INK; x.fillRect(0, y0 + 3, W, 4); x.fillRect(0, y0 + 9, W, 3);
+    x.fillStyle = '#e8c48e'; x.fillRect(0, y0 + 4, W, 2); x.fillStyle = '#d9b07a'; x.fillRect(0, y0 + 10, W, 1);
+    for (let X = 4; X < W; X += 14) {
+      x.fillStyle = INK; roundRect(x, X - 1, y0 - 1, 7, 14, 2); x.fill();
+      x.fillStyle = '#f2d39c'; x.fillRect(X, y0, 5, 12); x.fillStyle = '#fff1d0'; x.fillRect(X + 1, y0 + 1, 1, 9);
+    }
+    for (const [X, col] of [[30, FLOOR.flowerP], [92, FLOOR.flowerY], [150, FLOOR.flowerW]]) px(x, X, 2, ['.c.', 'cyc', '.c.'], { c: col, y: col === FLOOR.flowerY ? FLOOR.flowerW : FLOOR.flowerY });
+    return c;
+  }
   function roundRect(x, X, Y, w, h, r) {
     x.beginPath(); x.moveTo(X + r, Y); x.lineTo(X + w - r, Y); x.quadraticCurveTo(X + w, Y, X + w, Y + r);
     x.lineTo(X + w, Y + h - r); x.quadraticCurveTo(X + w, Y + h, X + w - r, Y + h); x.lineTo(X + r, Y + h);
@@ -313,9 +330,9 @@
     x.fillStyle = '#d4cfc6'; x.fillRect(3, 3, 2, 1);
   });
   SHOT.momonga = () => paint(11, 11, ['#bfe2ff', '#ffffff', '#7fb8ea'], (x) => { blob(x, star(5.5, 5.5, 4.6, 1.6, 4), '#bfe2ff', 2); x.fillStyle = '#ffffff'; x.fillRect(5, 5, 1, 1); });
-  SHOT.furuhonya = () => paint(10, 9, ['#c46a4c', '#fff6e3', '#8a4632'], (x) => {
-    blob(x, (y) => { y.beginPath(); y.rect(1.5, 1.5, 7, 6); }, '#c46a4c', 2);
-    x.fillStyle = '#fff6e3'; x.fillRect(7, 2, 1, 5); x.fillStyle = '#8a4632'; x.fillRect(2, 4, 4, 1);
+  SHOT.pungdengi = () => paint(10, 10, ['#7cc46a', '#bfe8a4', '#4f8f45'], (x) => {
+    blob(x, (y) => { y.beginPath(); y.moveTo(5, 1); y.quadraticCurveTo(9.5, 5, 5, 9); y.quadraticCurveTo(0.5, 5, 5, 1); y.closePath(); }, '#7cc46a', 2);
+    x.fillStyle = '#4f8f45'; x.fillRect(5, 3, 1, 5);
   });
   SHOT.kurimanju = () => paint(10, 10, ['#9a5c37', '#f2d39c', '#c88957'], (x) => {
     blob(x, (y) => { y.beginPath(); y.moveTo(5, 1.5); y.quadraticCurveTo(9, 5, 8, 8); y.lineTo(2, 8); y.quadraticCurveTo(1, 5, 5, 1.5); y.closePath(); }, '#9a5c37', 2);
@@ -339,26 +356,46 @@
   const sparkle = (col) => paint(7, 7, [col, '#ffffff'], (x) => { x.fillStyle = col; x.fillRect(3, 0, 1, 7); x.fillRect(0, 3, 7, 1); x.fillStyle = '#ffffff'; x.fillRect(3, 3, 1, 1); x.fillRect(2, 2, 3, 3); x.fillStyle = col; x.fillRect(2, 2, 1, 1); x.fillRect(4, 2, 1, 1); x.fillRect(2, 4, 1, 1); x.fillRect(4, 4, 1, 1); });
 
   // ── 캐릭터 (사람이 준 시트에서 자른 PNG) ───────────────────
-  // 정면 한 장. 없으면 단색 동그라미 자리표시 — 파일만 넣으면 코드는 그대로.
+  // CHAR[id] = { portrait, idle[], attack[], skill[], shot, fx, real } — 프레임 = { img, w, h, ax, ay(발 기준점) }
+  // 빠진 동작은 idle 로 대신합니다(chars_manifest.py 가 잘리거나 깨진 프레임을 뺀 자리).
   const CHAR = {};
   function loadChars(list, done) {
     const files = window.CD_CHAR_FILES || {};
-    let left = list.length;
+    const jobs = [];
     list.forEach((c) => {
-      if (!files[c.id]) { CHAR[c.id] = placeholder(c); if (--left === 0 && done) done(); return; }
-      const im = new Image();
-      im.onload = () => { CHAR[c.id] = { img: im, w: im.naturalWidth, h: im.naturalHeight, real: true }; if (--left === 0 && done) done(); };
-      im.onerror = () => { CHAR[c.id] = placeholder(c); if (--left === 0 && done) done(); };
-      im.src = 'assets/chars/' + files[c.id];
+      const m = files[c.id];
+      if (!m) { CHAR[c.id] = placeholder(c); return; }
+      const C = (CHAR[c.id] = { real: true, idle: [], attack: [], skill: [], portrait: null, shot: null, fx: null });
+      const one = (e, put) => jobs.push(new Promise((ok) => {
+        const im = new Image();
+        im.onload = () => { put({ img: im, w: e.w, h: e.h, ax: e.ax, ay: e.ay }); ok(); };
+        im.onerror = () => ok();   // 한 장 못 불러오면 그 프레임만 빠짐
+        im.src = 'assets/chars/' + e.f;
+      }));
+      ['idle', 'attack', 'skill'].forEach((k) => m[k].forEach((e, i) => one(e, (f) => (C[k][i] = f))));
+      one(m.portrait, (f) => (C.portrait = f));
+      if (m.shot) one(m.shot, (f) => (C.shot = f));
+      if (m.fx) one(m.fx, (f) => (C.fx = f));
+    });
+    Promise.all(jobs).then(() => {
+      list.forEach((c) => {
+        const C = CHAR[c.id];
+        if (!C.real) return;
+        ['idle', 'attack', 'skill'].forEach((k) => (C[k] = C[k].filter(Boolean)));
+        if (!C.idle.length) { CHAR[c.id] = placeholder(c); return; }
+        if (!C.attack.length) C.attack = [C.idle[0]];
+        if (!C.skill.length) C.skill = [C.idle[0]];
+        if (!C.portrait) C.portrait = C.idle[0];
+      });
+      if (done) done();
     });
   }
   function placeholder(c) {
-    const img = paint(30, 30, [c.color, c.ink, '#2a2120', '#ffb3c1'], (x) => {
-      blob(x, ell(15, 15, 12.4, 12), c.color, 3);
-      x.fillStyle = '#2a2120'; x.fillRect(10, 13, 2, 3); x.fillRect(18, 13, 2, 3);
-      x.fillStyle = '#ffb3c1'; x.fillRect(7, 17, 3, 2); x.fillRect(20, 17, 3, 2);
+    const img = paint(28, 28, ['#fffaf0', '#2a2120', '#ffb3c1'], (x) => {
+      blob(x, ell(14, 15, 11.4, 11), '#fffaf0', 3);
     });
-    return { img, w: 30, h: 30, real: false, label: c.name[0] };
+    const f = { img, w: 28, h: 28, ax: 14, ay: 27 };
+    return { real: false, label: c.name[0], idle: [f], attack: [f], skill: [f], portrait: f, shot: null, fx: null };
   }
   // 정수 배로 키운 판을 캐시 (작게 그릴 때 부드럽게 줄여도 도트 폭이 고르게 보이도록)
   const bigCache = new Map();
@@ -399,6 +436,7 @@
     A.flash = new Map();
     A.flashOf = (c) => { let f = A.flash.get(c); if (!f) { f = flashOf(c); A.flash.set(c, f); } return f; };
     A.floor = floor(T.board.cols, T.board.rows, 11);
+    A.top = topStrip(T.board.cols * TILE, 22);
     A.shot = {};
     for (const k in SHOT) A.shot[k] = SHOT[k]();
     A.coin = coin();

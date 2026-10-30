@@ -42,7 +42,16 @@
     zap: { gap: 0.1, f() { tone(N(88), 0.04, { type: 'square', vol: 0.035 }); tone(N(93), 0.04, { type: 'square', vol: 0.035, at: 0.035 }); tone(N(100), 0.05, { type: 'square', vol: 0.03, at: 0.07 }); } },
     thud: { gap: 0.1, f() { tone(N(50), 0.12, { type: 'triangle', vol: 0.14, to: N(38) }); } },
     fire: { gap: 0.12, f() { tone(N(67), 0.1, { type: 'sawtooth', vol: 0.025, to: N(74) }); } },
-    book: { gap: 0.12, f() { tone(N(62), 0.05, { type: 'triangle', vol: 0.08 }); tone(N(69), 0.05, { type: 'triangle', vol: 0.06, at: 0.04 }); } },
+    // 독 — 낮은 보글 두 번 (사인파 음높이만 오르내림)
+    psn: { gap: 0.18, f() { tone(N(55), 0.06, { type: 'sine', vol: 0.07, to: N(62) }); tone(N(58), 0.06, { type: 'sine', vol: 0.06, at: 0.07, to: N(65) }); } },
+    // 스킬 — 반짝 올라가는 두 음
+    skill: { gap: 0.12, f() { tone(N(84), 0.06, { type: 'square', vol: 0.05 }); tone(N(91), 0.12, { type: 'triangle', vol: 0.07, at: 0.05 }); } },
+    // 큰 물결 — 아래로 퐁 떨어지는 사인 두 개
+    water: { gap: 0.15, f() { tone(N(86), 0.14, { type: 'sine', vol: 0.09, to: N(67) }); tone(N(79), 0.16, { type: 'sine', vol: 0.06, at: 0.08, to: N(62) }); } },
+    // 회오리 — 바람 소리 대신 음높이가 빙글 올라가는 삼각파 (잡음 아님)
+    gust: { gap: 0.15, f() { [0, 0.06, 0.12].forEach((t, i) => tone(N(72 + i * 5), 0.09, { type: 'triangle', vol: 0.05, at: t, to: N(79 + i * 5) })); } },
+    // 건배 — 짠! 높은 두 음 동시에
+    cheers: { gap: 0.2, f() { tone(N(93), 0.12, { type: 'triangle', vol: 0.06 }); tone(N(97), 0.12, { type: 'triangle', vol: 0.05 }); tone(N(100), 0.16, { type: 'sine', vol: 0.05, at: 0.08 }); } },
     // 뿅 — 처치
     pop: { gap: 0.05, f() { tone(N(76), 0.07, { type: 'square', vol: 0.05, to: N(88) }); tone(N(91), 0.06, { type: 'triangle', vol: 0.05, at: 0.05 }); } },
     coin: { gap: 0.06, f() { tone(N(88), 0.05, { type: 'square', vol: 0.04 }); tone(N(95), 0.09, { type: 'square', vol: 0.04, at: 0.05 }); } },
