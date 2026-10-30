@@ -367,7 +367,9 @@ def layout_pass(pw, base, name, vp, touch, want):
     D.press("#setBtn")
     pg.wait_for_timeout(300)
     D.shot("settings")
-    D.press("#setDone")
+    D.press("#setDone")   # 윗줄 설정은 닫으면 판으로 바로
+    pg.wait_for_timeout(250)
+    D.press("#pauseBtn")
     pg.wait_for_timeout(250)
     D.shot("pause")
     D.press("#resumeBtn")

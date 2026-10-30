@@ -66,7 +66,7 @@
 .ia-link{border:0;background:none;padding:6px 4px;min-height:36px;font:inherit;font-weight:bold;color:var(--ia-hl-line);text-decoration:underline;cursor:pointer}
 /* 게임 중 토스트 — 판 위쪽 가장자리에 작게, 6초 뒤 사라짐. 안 보일 땐 눌리지 않음 */
 .ia-toast{position:absolute;left:50%;top:4px;z-index:4;transform:translate(-50%,-150%);opacity:0;pointer-events:none;
-  max-width:94%;min-height:32px;padding:5px 12px;border:2px solid var(--ia-ink);border-radius:16px;background:#fff;color:var(--ia-ink);
+  max-width:94%;min-height:36px;padding:7px 12px;border:2px solid var(--ia-ink);border-radius:18px;background:#fff;color:var(--ia-ink);
   font:12px/1.2 var(--f,inherit);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 3px 0 rgba(0,0,0,.2);cursor:pointer;transition:transform .25s ease-out,opacity .25s}
 .ia-toast b{color:var(--ia-hl-line)}
 .ia-toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}

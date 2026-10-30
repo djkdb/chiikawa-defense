@@ -23,7 +23,7 @@
 
   let g = null;
   let phase = 'title';          // title | play | pause | pick | end
-  let diffSel = 1, nextSeed = 0; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
+  let diffSel = 1, nextSeed = 0, firstTitle = true; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
   const TR = T.traits, BOSS = {};
   T.bosses.forEach((b) => (BOSS[b.key] = b));
   let sel = -1, drag = null, hover = -1;
@@ -107,6 +107,9 @@
     dpr = Math.min(3, window.devicePixelRatio || 1);
     const L = layoutOf(innerWidth, innerHeight);
     if (document.body.dataset.lay !== L) document.body.dataset.lay = L;
+    const rot = innerWidth > innerHeight && innerHeight < 500 && matchMedia('(pointer: coarse)').matches;
+    $('rotate').hidden = !rot;
+    if (rot && phase === 'play') pauseScreen();   // 돌려 놓으면 「계속하기」 로 이어 감
     const app = $('app'), cs = getComputedStyle(app);
     const padT = parseFloat(cs.paddingTop), padB = parseFloat(cs.paddingBottom), padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
     const gap = parseFloat(cs.rowGap) || 6;
@@ -1183,7 +1186,7 @@
   $('luckBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); luckScreen(); });
   $('mythBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); mythScreen(); });
   $('spdBtn').addEventListener('click', () => { spd = (spd + 1) % speeds.length; $('spdBtn').firstChild.textContent = '×' + speeds[spd]; });
-  $('setBtn').addEventListener('click', () => { S.unlock(); settingsScreen(phase === 'play' ? 'pause' : null); });
+  $('setBtn').addEventListener('click', () => { S.unlock(); settingsScreen(phase === 'play' ? 'play' : null); });
   $('pauseBtn').addEventListener('click', () => { if (phase === 'play') pauseScreen(); });
   $('codexBtn2').addEventListener('click', () => { if (phase === 'play') { phase = 'pause'; } codexScreen(true); });
   document.addEventListener('keydown', (ev) => {
@@ -1239,12 +1242,18 @@
     phase = 'title';
     const r = rec();
     nextSeed = +Q.get('seed') || ((Date.now() & 0xffffff) | 1);
+    if (firstTitle && !r.plays) diffSel = 0;   // 처음 온 사람(기록 없음)은 「쉬움」 이 골라져 있게 (한 번만 — 그다음은 고른 대로)
+    firstTitle = false;
     if (!unlocked(r, diffSel)) diffSel = 1;
     open(
       iaHtml('bannerHtml') +
       '<div class="cover" role="img" aria-label="표지 — 들판 너머 괴물 무리"></div>' +
       '<h1>치이카와 <em>랜덤</em> 디펜스</h1>' +
       '<div class="sub">들판 토벌대 · 비영리 팬 게임</div>' +
+      // 난이도 · 시작을 위로 — 인스타 DM(세로 약 650px)에서 스크롤 없이 첫 화면에 「시작하기」 가 보이게. 규칙은 그 아래(첫 판 안내가 다시 알려 줌)
+      diffBox() +
+      '<div class="row-btns"><button class="btn" id="startBtn">시작하기</button><button class="btn sky" id="codexBtn">도감 · 규칙</button></div>' +
+      '<div class="rec">' + (r.plays ? '모든 난이도 ' + r.plays + '판 · 신화 레시피 ' + found(r).length + '/' + T.recipes.length + ' 발견' : '첫 판이에요!') + '</div>' +
       '<div class="parade" id="parade"></div>' +
       '<div class="rules"><ol>' +
       '<li><b>소환</b>하면 무작위 친구가 무작위 등급으로 자리에 나와요.</li>' +
@@ -1253,9 +1262,6 @@
       '<li>괴물은 웨이브마다 <b>특성</b>(고속·장갑·재생·분열·부활)이 바뀌어요. 보스는 <b>기술</b>을 써요.</li>' +
       '<li><b>전설 셋</b>을 모으면 <b>신화</b> 레시피! 길 위 괴물이 한도에 닿으면 패배, <b>' + T.waves + '웨이브</b> 보스를 잡으면 클리어.</li>' +
       '</ol></div>' +
-      diffBox() +
-      '<div class="row-btns"><button class="btn" id="startBtn">시작하기</button><button class="btn sky" id="codexBtn">도감 · 규칙</button></div>' +
-      '<div class="rec">' + (r.plays ? '모든 난이도 ' + r.plays + '판 · 신화 레시피 ' + found(r).length + '/' + T.recipes.length + ' 발견' : '첫 판이에요!') + '</div>' +
       '<p class="sub notice">캐릭터 · 특성 괴물 · 보스 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 일반 괴물 · 길 · 효과 · 소리는 직접 만들었어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
     );
     parade($('parade'), T.chars.map((c) => c.id));
@@ -1298,7 +1304,7 @@
     });
     btn('backBtn', () => { if (inGame) { close(); phase = 'play'; } else titleScreen(); });
   }
-  // 설정 덮개: back = 닫으면 돌아갈 곳('pause' = 멈춤 메뉴, 없으면 시작 화면)
+  // 설정 덮개: back = 닫으면 돌아갈 곳('pause' = 멈춤 메뉴 · 'play' = 판(윗줄 설정 버튼) · 없으면 시작 화면)
   function settingsScreen(back) {
     if (phase === 'play') phase = 'pause';
     const st = settings();
@@ -1309,7 +1315,7 @@
       row('stCalm', '움직임 줄이기', st.calm, '흔들림 · 번쩍임 끔') +
       '<label><span>기본 빠르기</span><select id="stSpd">' + speeds.map((v, i) => '<option value="' + i + '"' + (i === st.spd ? ' selected' : '') + '>×' + v + '</option>').join('') + '</select></label>' +
       '</div>' + (IA ? '<div class="row-btns set-more">' + iaHtml('buttonHtml', 'btn sky') + '<button class="btn sky" data-ia="transfer">기록 옮기기</button></div>' : '') +
-      '<div class="row-btns"><button class="btn" id="setDone">' + (back === 'pause' ? '돌아가기' : '닫기') + '</button></div>');
+      '<div class="row-btns"><button class="btn" id="setDone">' + (back === 'pause' ? '돌아가기' : back === 'play' ? '계속하기' : '닫기') + '</button></div>');
     const save = () => {
       const r = rec();
       r.set = { sfx: $('stSfx').checked, music: $('stMusic').checked, vib: $('stVib').checked, calm: $('stCalm').checked, spd: +$('stSpd').value };
@@ -1319,6 +1325,7 @@
     ['stSfx', 'stMusic', 'stVib', 'stCalm', 'stSpd'].forEach((id) => $(id).addEventListener('change', () => { save(); S.play('pick'); if (id === 'stVib' && $(id).checked) vib(20); }));
     btn('setDone', () => {
       if (back === 'pause' && g && !g.over) pauseScreen();
+      else if (back === 'play' && g && !g.over) { close(); phase = 'play'; }
       else if (phase === 'end' && endInfo) resultScreen();
       else if (phase === 'end') close();   // 끝 연출 중(결과 화면 전) — endScreen 이 곧 엶
       else if (phase === 'title' || !g || g.over) titleScreen();
@@ -1399,7 +1406,7 @@
       h += '<div class="lrow" style="--c:' + GR[gi].color + '"><b class="gname" style="background:' + GR[gi].color + '">' + GR[gi].name + '</b><span class="lp">' + Math.round(p * 100) + '%' + (g.pity[i] ? ' <small>(+' + Math.round(g.pity[i] * 100) + ')</small>' : '') + '</span>' +
         '<button class="btn small" id="luck' + i + '"' + (g.clovers < 1 || g.over ? ' disabled' : '') + '>도전 ' + CLOVER + '1</button></div>';
     });
-    h += '</div><p class="lmsg" id="lmsg">' + (msg || (g.empty().length ? '' : '빈칸이 있어야 해요')) + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
+    h += '</div><p class="lmsg" id="lmsg">' + (msg || (g.empty().length ? '' : '빈칸이 있어야 해요')) + '</p><div class="row-btns stick"><button class="btn" id="resumeBtn">계속하기</button></div>';
     open(h);
     T.luck.grades.forEach((gi, i) => btn('luck' + i, () => {
       const r = g.gamble(i);
@@ -1421,10 +1428,11 @@
       h += '<div class="recipe' + (ready ? ' ready' : '') + '"><div class="rhead" id="rpor' + i + '"></div><div class="rbody"><b>' + (known ? '신화 ' + CH[R.need[0]].name + ' 「' + R.myth.name + '」' : '??? 신화') + '</b>' +
         '<span class="rdesc">' + (known ? R.myth.desc : '만들면 알 수 있어요') + '</span><div class="ings">' + ing + '</div>' +
         '<div class="ract">' + (ready ? '<button class="btn small pink" id="craft' + i + '"' + (g.over ? ' disabled' : '') + '>만들기!</button>'
+          : N.miss.length === R.need.length && !N.spare.length ? '<small>전설 ' + N.miss.length + '명이 더 필요해요</small>'   // 아직 전설이 없으면 꺼진 버튼을 늘어놓지 않음
           : '<button class="btn small" id="swap' + i + '"' + (N.spare.length && g.clovers >= T.luck.swap && !g.over ? '' : ' disabled') + '>빠진 재료 채우기 ' + CLOVER + '' + T.luck.swap + '</button><small>' + (N.spare.length ? '남는 전설 ' + N.spare.length : '남는 전설 없음') + ' · 빠짐 ' + N.miss.length + '</small>') +
         '</div></div></div>';
     });
-    h += '</div><p class="lmsg">' + (msg || '') + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
+    h += '</div><p class="lmsg">' + (msg || '') + '</p><div class="row-btns stick"><button class="btn" id="resumeBtn">계속하기</button></div>';
     open(h);
     T.recipes.forEach((R, i) => {
       const box = $('rpor' + i);
