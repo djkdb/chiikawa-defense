@@ -4,7 +4,7 @@
   python3 tools/monsters_slice.py --board /tmp/mon.png # + 확대 확인 판 (어두운·밝은 바탕)
 
 재료 (직접 그리지 않음 — 사람이 만든 시트)
-  tools/sheets/monsters.webp — 괴물 5줄 × 8칸(분열 줄만 10개). 라벨은 왼쪽 바깥. 시트 괴물은 오른쪽을 봄.
+  tools/sheets/monsters.webp — 괴물 5줄 × 8칸(분열 줄만 10개). 라벨은 왼쪽 바깥. 시트 괴물은 왼쪽을 봄(속도선 · 먼지가 오른쪽 뒤에).
       고속: 걷기 6 · 맞음 · 쓰러짐 / 장갑: 걷기 6 · 맞음 · 쓰러짐 / 재생: 걷기 5 · 회복 반짝 · 맞음 · 쓰러짐
       분열: 걷기 6 · 갈라짐 2 · 작은 젤리 2 / 부활: 걷기 6 · 쓰러짐(초록 반투명 유령) · 다시 일어남
   tools/sheets/bosses.webp — 보스 4줄 × 8칸: 침묵 · 소환 · 회복 · 셔플. 앞 4칸 걷기(0 = 정면, 1~3 = 왼쪽을 봄),
@@ -249,7 +249,7 @@ def main():
     boss, d2 = slice_rows(SHEETS / "bosses.webp", BOSS_ROWS, lambda s: BOSS_NAMES, BOSS_H, "b_")
     js = (
         "/* 괴물 특성 5종 · 보스 4종 프레임 목록 — tools/monsters_slice.py 가 씁니다(손으로 고치지 말 것).\n"
-        "   그림: 사람이 만든 초록 바탕 시트(tools/sheets/)를 자른 PNG. 시트 괴물은 오른쪽, 보스 걷기는 왼쪽을 봅니다.\n"
+        "   그림: 사람이 만든 초록 바탕 시트(tools/sheets/)를 자른 PNG. 시트 괴물 · 보스 걷기 모두 왼쪽을 봅니다.\n"
         "   f = 파일, w·h = 크기(px), ax·ay = 발 기준점(px), k = 그림 1px 의 도트 수. */\n"
         f"window.CD_MON_FILES = {json.dumps({'k': round(1 / DOTS, 6), 'mon': mon, 'boss': boss}, ensure_ascii=False, separators=(',', ':'))};\n"
     )

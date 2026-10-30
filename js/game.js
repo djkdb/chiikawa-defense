@@ -422,7 +422,7 @@
           // 특성 괴물: 시트의 쓰러짐 프레임(분열은 갈라짐)이 잠깐 남았다 사라짐
           if (e.trait && MON.ready) {
             const act = e.trait === 'split' ? (e.small ? 'small' : 'split') : 'down';
-            view.fx.push({ type: 'corpse', grp: 'mon', name: e.trait, act, x: X, y: Y, flip: e.dir === 2 || e.dir === 3, t: 0, life: e.trait === 'split' && !e.small ? 0.5 : 0.55 });
+            view.fx.push({ type: 'corpse', grp: 'mon', name: e.trait, act, x: X, y: Y, flip: facesRight(e.dir), t: 0, life: e.trait === 'split' && !e.small ? 0.5 : 0.55 });
           }
           view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
           text(X, Y - 14, '+' + e.coins, '#ffd54a', e.kind === 'boss' ? 11 : 7, { coin: true, life: 0.9, vy: -14 });
@@ -600,17 +600,20 @@
     const n = GR[gi].stars, step = n >= 5 ? 5.5 : 7;
     for (let k = 0; k < n; k++) star(x, Math.round(X + 16 - (n - 1) * step / 2 + k * step), Y + 29, gi >= 4 ? RAINBOW[k % RAINBOW.length] : GR[gi].color);
   }
-  // 시트 프레임(특성 괴물 · 보스) 고르기 — 없으면 null (예전 그린 괴물로)
+  // 괴물이 볼 쪽: 길은 시계 방향(윗길 → 오른쪽 아래로 → 아랫길 ← 왼쪽 위로). 세로 길에선 다음에 꺾일 쪽을 봄
+  // (오른쪽 내려가기 = 곧 왼쪽으로 · 왼쪽 올라가기 = 곧 오른쪽으로) — 꺾을 때마다 뒤집히지 않게
+  const facesRight = (dir) => dir === 0 || dir === 3;
+  // 시트 프레임(특성 괴물 · 보스) 고르기 — 없으면 null (예전 그린 괴물로). 시트 그림은 괴물 · 보스 모두 왼쪽을 봄
   function sheetFrame(e, t) {
     if (!MON.ready) return null;
     if (e.bs) {
       const ph = e.bs.phase, k = Math.floor(t * (ph === 'walk' ? 5 : 4) + e.id);
       if (ph === 'warn') return { f: MON.frame('boss', e.bt, 'ready', k), face: true };
       if (ph === 'cast') return { f: MON.frame('boss', e.bt, 'cast', k), face: true };
-      return { f: MON.frame('boss', e.bt, 'walk', k), flip: e.dir === 0 || e.dir === 1 };
+      return { f: MON.frame('boss', e.bt, 'walk', k), flip: facesRight(e.dir) };
     }
     if (!e.trait) return null;
-    const flip = e.dir === 2 || e.dir === 3;   // 시트 괴물은 오른쪽을 봄
+    const flip = facesRight(e.dir);
     if (e.downT > 0) {
       const k = 1 - e.downT / TR.revive.downT;
       return { f: MON.frame('mon', 'revive', k < 0.6 ? 'down' : 'rise', 0), flip, ghost: k < 0.6 };
@@ -654,7 +657,7 @@
     x.beginPath(); x.ellipse(X, by, w * 0.32 * sc, 2.5, 0, 0, Math.PI * 2); x.fill();
     x.save();
     x.translate(Math.round(X), Math.round(by));
-    if (e.dir === 2) x.scale(-1, 1);
+    if (!facesRight(e.dir)) x.scale(-1, 1);   // 직접 그린 괴물은 오른쪽을 봄
     if (sc !== 1) x.scale(sc, sc);
     x.imageSmoothingEnabled = false;
     const hop = e.kind === 'minion' ? -Math.abs(Math.sin(t * 9 + e.id)) * 2 : 0;
