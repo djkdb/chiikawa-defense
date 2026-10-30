@@ -361,6 +361,39 @@ body.calm .parade canvas,body.calm #summonBtn.pulse,body.calm .load.hot,body.cal
 body.calm #cutin.go{animation:cutinCalm 2s linear}
 @keyframes cutinCalm{0%,100%{opacity:0}10%,85%{opacity:1}}
 @media (prefers-reduced-motion:reduce){ .parade canvas,#summonBtn.pulse,.load.hot{animation:none} }
+/* 폰 · 판을 크게, 버튼은 얇게 (사람: 「폰에서 디펜스 화면이 너무 작고 버튼이 너무 커서 비효율적」)
+   카카오톡 안 브라우저처럼 위아래 막대가 있으면 화면 세로가 650px 안팎 — 판에 최대한 주고, 조작은 아래 두 줄로 */
+body[data-lay="phone"] #app{gap:4px}
+body[data-lay="phone"] .hud{flex-wrap:wrap;gap:3px}
+body[data-lay="phone"] .hud .pill{min-height:36px;--uk:0.42}
+body[data-lay="phone"] .hud .chip{min-width:40px;padding:0 6px;font-size:12px}
+body[data-lay="phone"] .wave{flex:1;min-width:0}
+body[data-lay="phone"] .wave b{font-size:12px}
+body[data-lay="phone"] .wave .wcol{display:none}
+body[data-lay="phone"] .load{order:9;flex-basis:100%;min-height:22px!important;padding:0 8px}
+body[data-lay="phone"] .load .bar{height:8px}
+body[data-lay="phone"] .load span{font-size:10px}
+body[data-lay="phone"] .panel{gap:4px}
+body[data-lay="phone"] .info{height:auto;min-height:0;padding:3px 8px}
+body[data-lay="phone"] .info .por{width:28px;height:28px;border-width:2px}
+body[data-lay="phone"] .info .ds,body[data-lay="phone"] .info .hint{font-size:10.5px;-webkit-line-clamp:1;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+body[data-lay="phone"] .info .nm{font-size:12px}
+body[data-lay="phone"] .ctrl{gap:5px}
+body[data-lay="phone"] #summonBtn{min-height:52px;flex:0 0 31%;font-size:16px;--uk:0.45}
+body[data-lay="phone"] #summonBtn kbd{display:none}
+body[data-lay="phone"] .ups{grid-template-columns:repeat(4,1fr);gap:4px}
+body[data-lay="phone"] .up{min-height:52px;padding:2px 4px;--uk:0.42}
+body[data-lay="phone"] .up b{font-size:11px}
+body[data-lay="phone"] .up span{font-size:10px}
+body[data-lay="phone"] .tools3{gap:4px}
+body[data-lay="phone"] .tool{min-height:40px;padding:1px 6px;--uk:0.42;flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
+body[data-lay="phone"] .tool kbd,body[data-lay="phone"] .tool .obar{display:none}
+body[data-lay="phone"] .tool>b{font-size:11px}
+body[data-lay="phone"] .tool .tc{font-size:10.5px}
+body[data-lay="phone"] .fan{display:none}
+body[data-lay="phone"] .boardWrap{border-width:3px}
+body[data-lay="phone"] #mythBtn .tc{display:none}
+body[data-lay="phone"] .tool>b,body[data-lay="phone"] .up b{white-space:nowrap}
 </style>
 </head>
 <body>
