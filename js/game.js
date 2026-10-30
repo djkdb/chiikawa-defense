@@ -1002,7 +1002,7 @@
     setText('costTxt', String(g.cost()));
     const canSum = !g.over && g.coins >= g.cost() && g.empty().length > 0;
     const sb = $('summonBtn');
-    if (hudCache.sb !== canSum) { hudCache.sb = canSum; sb.classList.toggle('pulse', canSum && g.empty().length > 0); sb.setAttribute('aria-disabled', String(!canSum)); sb.style.filter = canSum ? '' : 'grayscale(.6)'; sb.style.opacity = canSum ? '' : '.7'; }
+    if (hudCache.sb !== canSum) { hudCache.sb = canSum; sb.classList.toggle('pulse', canSum && g.empty().length > 0); sb.setAttribute('aria-disabled', String(!canSum)); }   // 꺼진 모양은 index.html 의 [aria-disabled] (회색)
     // 확률 · 행운 · 신화 버튼
     const oc = g.oddsCost();
     const okey = g.oddsLv + '|' + (g.coins >= oc) + '|' + !!g.over;
