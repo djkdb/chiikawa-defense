@@ -7,6 +7,8 @@
   const A = CD.art.build(T);
   const S = CD.sfx;
   const MON = CD.mon, TIL = CD.tiles;
+  // UI 키트 아이콘 (assets/ui/ · tools/ui_install.py)
+  const CLOVER = '<img class="ic" src="assets/ui/icon_clover.png" alt="클로버">', LOCK = '<img class="ic" src="assets/ui/icon_lock.png" alt="잠김"> ';
   let floorHi = null, topHi = null;   // 타일 시트로 구운 바닥 · 위 여백 띠 (없으면 art.js 의 예전 바닥)
   const TILE = A.TILE, COLS = T.board.cols, ROWS = T.board.rows;
   // PAD: 판 위쪽 여백(도트). 윗길을 도는 보스(걷기 56 · 기술 쓸 때 ~68 도트)·괴물 머리가 캔버스 밖으로 잘리지 않게
@@ -1064,7 +1066,7 @@
     T.diffs.forEach((D, i) => {
       const o = unlocked(r, i), d = (r.d && r.d[D.key]) || {};
       h += '<button class="diff' + (i === diffSel ? ' on' : '') + '" data-i="' + i + '" style="--c:' + D.color + '"' + (o ? '' : ' disabled') + ' aria-pressed="' + (i === diffSel) + '">' +
-        '<b>' + (o ? '' : '🔒 ') + D.name + '</b><span>' + (o ? D.desc : T.diffs[i - 1].name + ' 클리어하면 열려요') + '</span>' +
+        '<b>' + (o ? '' : LOCK) + D.name + '</b><span>' + (o ? D.desc : T.diffs[i - 1].name + ' 클리어하면 열려요') + '</span>' +
         '<em>' + (d.plays ? '최고 ' + (d.clears ? '클리어' + (d.endless ? ' · 무한 ' + d.endless : '') : d.best + '웨이브') : '기록 없음') + '</em></button>';
     });
     h += '</div><div class="vchips" id="vchips"></div>';
@@ -1201,7 +1203,7 @@
     T.luck.grades.forEach((gi, i) => {
       const p = g.luckP(i);
       h += '<div class="lrow" style="--c:' + GR[gi].color + '"><b class="gname" style="background:' + GR[gi].color + '">' + GR[gi].name + '</b><span class="lp">' + Math.round(p * 100) + '%' + (g.pity[i] ? ' <small>(+' + Math.round(g.pity[i] * 100) + ')</small>' : '') + '</span>' +
-        '<button class="btn small" id="luck' + i + '"' + (g.clovers < 1 || g.over ? ' disabled' : '') + '>도전 🍀1</button></div>';
+        '<button class="btn small" id="luck' + i + '"' + (g.clovers < 1 || g.over ? ' disabled' : '') + '>도전 ' + CLOVER + '1</button></div>';
     });
     h += '</div><p class="lmsg" id="lmsg">' + (msg || (g.empty().length ? '' : '빈칸이 있어야 해요')) + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
     open(h);
@@ -1225,7 +1227,7 @@
       h += '<div class="recipe' + (ready ? ' ready' : '') + '"><div class="rhead" id="rpor' + i + '"></div><div class="rbody"><b>' + (known ? '신화 ' + CH[R.need[0]].name + ' 「' + R.myth.name + '」' : '??? 신화') + '</b>' +
         '<span class="rdesc">' + (known ? R.myth.desc : '만들면 알 수 있어요') + '</span><div class="ings">' + ing + '</div>' +
         '<div class="ract">' + (ready ? '<button class="btn small pink" id="craft' + i + '"' + (g.over ? ' disabled' : '') + '>만들기!</button>'
-          : '<button class="btn small" id="swap' + i + '"' + (N.spare.length && g.clovers >= T.luck.swap && !g.over ? '' : ' disabled') + '>빠진 재료 채우기 🍀' + T.luck.swap + '</button><small>' + (N.spare.length ? '남는 전설 ' + N.spare.length : '남는 전설 없음') + ' · 빠짐 ' + N.miss.length + '</small>') +
+          : '<button class="btn small" id="swap' + i + '"' + (N.spare.length && g.clovers >= T.luck.swap && !g.over ? '' : ' disabled') + '>빠진 재료 채우기 ' + CLOVER + '' + T.luck.swap + '</button><small>' + (N.spare.length ? '남는 전설 ' + N.spare.length : '남는 전설 없음') + ' · 빠짐 ' + N.miss.length + '</small>') +
         '</div></div></div>';
     });
     h += '</div><p class="lmsg">' + (msg || '') + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
