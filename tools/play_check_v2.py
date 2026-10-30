@@ -154,6 +154,8 @@ def bot_turn(D, s, T):
     if s["clovers"] > (2 if legends >= 2 else 0) and empty:
         D.press("#luckBtn")
         D.pg.wait_for_timeout(120)
+        if not D.pg.locator("#luck1").count():   # 그사이 보스가 죽어 보상 화면이 먼저 열렸으면 다음 차례에
+            return None
         if "luck_sheet" not in D.shots:
             D.shot("luck_sheet")
         before = D.st()["clovers"]

@@ -12,7 +12,10 @@ js/mon.js           특성 괴물 · 보스 시트 프레임 불러오기 (asset
 js/sfx.js           효과음 — Web Audio 로 그 자리에서 합성 (잡음 「쉭」 없음)
 assets/chars/       친구 8명 시트 프레임 (chars_manifest.py)
 assets/monsters/    괴물 특성 5종 · 보스 4종 프레임 (tools/monsters_slice.py)
-tools/sheets/       괴물 · 보스 원본 시트 (사람이 만든 초록 크로마키 그림)
+assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤불 · 괴물 굴 …) (tools/tiles_slice.py)
+assets/bg/          배경 맵(낮 들판 · 밤 숲) · 표지 (tools/tiles_slice.py)
+js/tiles.js         타일로 판 바닥 · 위 여백 띠 굽기 (못 받으면 art.js 의 예전 바닥)
+tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 만든 그림)
 ```
 
 ## 규칙 (v2)
@@ -63,6 +66,10 @@ tools/sheets/       괴물 · 보스 원본 시트 (사람이 만든 초록 크�
   확인: `python3 tools/monsters_slice.py --board /tmp/mon.png` (어두운 · 밝은 바탕 확대 판).
 - 시트 괴물은 오른쪽을 봐서 왼쪽 · 위로 갈 때 뒤집고, 보스 걷기는 왼쪽을 봐서 오른쪽 · 아래로 갈 때 뒤집음. 보스 「준비」 · 「쓰는 중」 프레임은 정면이라 안 뒤집음.
 - 특성 없는 일반 괴물(꼬물이 · 단단이 · 졸개)은 예전처럼 `art.js` 가 그림.
+- 판: `tools/sheets/tiles.webp` 를 같은 좁은 키로 잘라 괴물 길 = 흙길 타일(모서리 한 장을 뒤집어 네 방향), 친구 자리 = 풀밭 칸(대부분 보통 · 가끔 꽃 칸),
+  고른 친구 = 노랑 칸, 침묵으로 봉인된 친구 · 침묵 예고 칸 = 보라 칸, 출발점 = 괴물 굴, 위 여백 = 울타리 · 덤불 · 꽃.
+- 배경: `tools/sheets/maps.webp` 의 2×2 중 낮 들판(쉬움 · 보통) · 밤 숲(어려움 · 지옥, 판도 살짝 푸르게) · 표지(시작 화면 위). 왼쪽 아래(자격증 게임 것)는 안 씀.
+- UI 키트(버튼 · 탭 · 패널 그림)는 아직 브랜치에 없어 CSS 로 둠 — 들어오면 index.html 「v2 UI 키트」 블록만 바꾸면 됨.
 
 ## 밸런스
 

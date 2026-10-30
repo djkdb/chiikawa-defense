@@ -203,6 +203,13 @@ table.grades th{background:var(--cream-2)}
 .ract small{font-size:11px;color:var(--ui-mute)}
 ul.rules.mini{padding-left:22px;font-size:12px}
 #banner.myth{color:#ffe3f0}
+/* 배경 맵 (사람이 만든 그림, assets/bg/) — 판 뒤에 깔고 크림 막을 덮어 판넬 글이 읽히게 */
+body.bg-day{background:linear-gradient(rgba(255,241,214,.5),rgba(255,241,214,.5)),url(assets/bg/day.webp) center/cover fixed,var(--cream)}
+body.bg-night{background:linear-gradient(rgba(20,26,60,.25),rgba(20,26,60,.25)),url(assets/bg/night.webp) center/cover fixed,#1d2b4a}
+body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
+.fan{background:var(--ui-fan-bg,transparent);border-radius:8px}
+.cover{height:150px;margin:-6px -6px 6px;border-radius:14px;border:var(--ui-bw) solid var(--ui-line);background:url(assets/bg/cover.webp) center 54%/cover}
+@media (max-width:760px){.cover{height:110px}}
 @media (max-width:760px){
   .diffs{grid-template-columns:1fr 1fr}
   .tool{min-height:40px;padding:2px 6px}
@@ -292,6 +299,8 @@ ul.rules.mini{padding-left:22px;font-size:12px}
 <script src="js/art.js"></script>
 <script src="assets/monsters/monsters.js"></script>
 <script src="js/mon.js"></script>
+<script src="assets/tiles/tiles.js"></script>
+<script src="js/tiles.js"></script>
 <script src="js/sfx.js"></script>
 <script src="js/game.js"></script>
 </body>

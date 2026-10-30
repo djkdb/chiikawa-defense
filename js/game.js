@@ -6,7 +6,8 @@
   const Q = new URLSearchParams(location.search);
   const A = CD.art.build(T);
   const S = CD.sfx;
-  const MON = CD.mon;
+  const MON = CD.mon, TIL = CD.tiles;
+  let floorHi = null, topHi = null;   // 타일 시트로 구운 바닥 · 위 여백 띠 (없으면 art.js 의 예전 바닥)
   const TILE = A.TILE, COLS = T.board.cols, ROWS = T.board.rows;
   // PAD: 판 위쪽 여백(도트). 윗길을 도는 보스(걷기 56 · 기술 쓸 때 ~68 도트)·괴물 머리가 캔버스 밖으로 잘리지 않게
   const PAD = 30;
@@ -424,8 +425,16 @@
         x.restore();
       }
     }
-    // 보스 침묵 예고: 노리는 칸이 보라색으로 깜빡임
-    if (view.warn && view.warn.targets && view.warn.targets.includes(i)) {
+    // 타일 칸: 고른 친구 = 노랑 풀밭 칸 · 봉인된 친구 = 보라 칸 (시트의 칸 그림)
+    const tk = u && u.silT > 0 ? 'seal' : sel === i && u ? 'sel' : null;
+    const tim = TIL.ready && tk ? TIL.slotTile(tk) : null;
+    if (tim) { const p2 = TILE * TIL.pad; x.save(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(tim, X + (TILE - p2) / 2, Y + (TILE - p2) / 2, p2, p2); x.restore(); }
+    // 보스 침묵 예고: 노리는 칸이 보라 칸으로 깜빡임
+    if (view.warn && view.warn.targets && view.warn.targets.includes(i) && TIL.ready) {
+      const p2 = TILE * TIL.pad;
+      x.save(); x.globalAlpha = 0.5 + 0.4 * Math.sin(t * 14); x.imageSmoothingEnabled = true;
+      x.drawImage(TIL.slotTile('seal'), X + (TILE - p2) / 2, Y + (TILE - p2) / 2, p2, p2); x.restore();
+    } else if (view.warn && view.warn.targets && view.warn.targets.includes(i)) {
       x.save(); x.globalAlpha = 0.45 + 0.35 * Math.sin(t * 14);
       x.fillStyle = '#b48cff'; A.roundRect(x, X + 1, Y + 2, TILE - 2, TILE - 3, 8); x.fill(); x.restore();
     }
@@ -753,8 +762,17 @@
     const sh = view.shake > 0 ? view.shake * 6 * s : 0;
     ctx.setTransform(s, 0, 0, s, (Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh + PAD * s);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(A.top, 0, -PAD);
-    ctx.drawImage(A.floor, 0, 0);
+    if (floorHi) {
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(topHi, 0, -PAD, BW, PAD);
+      ctx.drawImage(floorHi, 0, 0, BW, ROWS * TILE);
+      // 밤 숲 난이도(어려움 · 지옥)는 판도 살짝 어둡고 푸르게 — 길 · 칸은 읽히는 만큼만
+      if (g && g.diff >= 2) { ctx.fillStyle = 'rgba(30,40,95,.2)'; ctx.fillRect(0, -PAD, BW, BH); }
+      ctx.imageSmoothingEnabled = false;
+    } else {
+      ctx.drawImage(A.top, 0, -PAD);
+      ctx.drawImage(A.floor, 0, 0);
+    }
     if (!g) return;
     // 고른 아군의 사거리
     if (sel >= 0 && g.slots[sel].u && !(drag && drag.moved)) {
@@ -1054,16 +1072,20 @@
   }
   function pickDiff(i) {
     diffSel = i;
+    setBg(i);
     sheet.querySelectorAll('.diff').forEach((b) => { const on = +b.dataset.i === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const D = T.diffs[i], chips = Core.rollChips(i, nextSeed);
     $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
   }
+  // 판 뒤 배경: 쉬움 · 보통 = 낮 들판, 어려움 · 지옥 = 밤 숲 (index.html 의 body.bg-day / bg-night)
+  function setBg(d) { document.body.classList.toggle('bg-night', d >= 2); document.body.classList.toggle('bg-day', d < 2); }
   function titleScreen() {
     phase = 'title';
     const r = rec();
     nextSeed = +Q.get('seed') || ((Date.now() & 0xffffff) | 1);
     if (!unlocked(r, diffSel)) diffSel = 1;
     open(
+      '<div class="cover" role="img" aria-label="표지 — 들판 너머 괴물 무리"></div>' +
       '<h1>치이카와 <em>랜덤</em> 디펜스</h1>' +
       '<div class="sub">들판 토벌대 · 비영리 팬 게임</div>' +
       '<div class="parade" id="parade"></div>' +
@@ -1225,6 +1247,7 @@
     const seed = nextSeed || +Q.get('seed') || undefined;
     nextSeed = 0;
     g = new Core.Game({ seed, diff: diffSel });
+    setBg(g.diff);
     view.an.clear(); txtAt.clear(); view.fx = []; view.texts = []; view.flyGhosts = []; view.cards = [];
     sel = -1; drag = null; hudCache.sb = null; hudCache.odds = null; hudCache.myth = null; infoKey = ''; view.warn = null; view.bigHit.clear(); lastInterest = 0;
     T.upgrade.base.forEach((_, i) => { $('up' + i).dataset.k = ''; });
@@ -1240,14 +1263,15 @@
   buildUps();
   if (rec().mute) { S.on = false; $('sndBtn').setAttribute('aria-pressed', 'false'); }
   if (speeds[0] !== 1) $('spdBtn').textContent = '×' + speeds[0];
-  A.loadChars(T.chars, () => MON.load(() => {
+  A.loadChars(T.chars, () => MON.load(() => TIL.load(() => {
+    if (TIL.ready) { floorHi = TIL.floor(COLS, ROWS, TILE, 11); topHi = TIL.top(BW, PAD); }
     g = new Core.Game({ seed: 1 });   // 시작 화면 뒤에 빈 판을 보여 주려고
     fit();
     titleScreen();
     hudTick();
     requestAnimationFrame(frame);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); });
-  }));
+  })));
 
   // 확인용 (play_check.py 가 읽기만 함)
   CD.test = {
