@@ -6,7 +6,9 @@
  1) 아래 MAP 에 적힌 부품 PNG 와 아이콘을 assets/ui/ 로 복사 (키트 원본은 건드리지 않음)
  2) index.html 의 「ui-kit:defense」 표시 사이에 CSS 를 다시 씀 — 디펜스 화면의 기존 클래스(.btn · .pill · .sheet · .diff …)
     마다 어떤 부품을 9-slice(border-image)로 깔지. 글자는 그대로 HTML. 그래서 화면 코드(game.js)는 고치지 않아도 됨.
-    --uk = 원본 px → 화면 px 배율 (자리마다 다름: 작은 알약은 작게, 덮개 종이는 크게).
+    --uk = 원본 px → 화면 px 배율 (자리마다 다름: 작은 칸은 작게, 덮개 종이는 크게).
+ 버튼(.btn · .pill · 소환 · 강화 · 도구 · 행운 줄)은 그림을 쓰지 않음 — 작은 그림을 0.3~0.6배로 늘이고 줄이면 선이 흐리고 굵기가
+ 들쭉날쭉해서(2026-10-30 사람이 「퀄리티가 별로」) index.html 의 CSS 로만 그림. 그림은 장식 테두리 · 판넬 · 덮개 종이에만.
  키트가 바뀌면(slice_ui.py 다시 실행) 이것만 다시 돌리면 됩니다.
 """
 import json
@@ -19,19 +21,11 @@ DST = ROOT / "assets" / "ui"
 HTML = ROOT / "index.html"
 START, END = "/* ui-kit:defense:start — tools/ui_install.py 가 씀, 손으로 고치지 않음 */", "/* ui-kit:defense:end */"
 
-# 선택자 → (부품, 배율). 버튼 부품은 눌림 · 비활성 그림도 같이
+# 선택자 → (부품, 배율). 버튼 부품(btn_*)을 다시 넣으면 눌림 · 비활성 그림도 같이 복사됨
 # 덮개 종이(.sheet)는 스크롤되는 상자라 ::before 가 내용과 같이 밀려 올라감 → 상자 자체의 border-image 로 (DIRECT)
 DIRECT = [(".sheet", "panel_wide", 0.45)]
 MAP = [
     (".card", "panel_wide", 0.32),
-    (".pill", "btn_sky", 0.42),
-    (".btn", "btn_yellow", 0.5),
-    (".btn.pink", "btn_pink", 0.5),
-    (".btn.sky", "btn_sky", 0.5),
-    ("#summonBtn", "btn_yellow", 0.62),
-    (".up", "btn_sky", 0.38),
-    (".tool", "btn_yellow", 0.38),
-    (".lrow", "btn_sky", 0.42),
     (".diff", "frame_gray", 0.34),
     (".diff[data-i='0']", "frame_yellow", 0.34),
     (".diff[data-i='1']", "frame_sky", 0.34),
