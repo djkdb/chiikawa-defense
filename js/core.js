@@ -82,7 +82,8 @@
     this.cols = cols; this.rows = rows;
     this.path = makePath(cols, rows);
     this.slots = [];
-    for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) this.slots.push({ x: x + 0.5, y: y + 0.5, u: null });
+    // reach = 칸에서 길까지 가장 가까운 거리. 안쪽 칸(가운데 두 줄)은 2칸이라 사거리 짧은 친구(우사기 1.8 · 시사 1.9)는 길에 닿지 않음
+    for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) this.slots.push({ x: x + 0.5, y: y + 0.5, u: null, reach: Math.min(x, y, cols - 1 - x, rows - 1 - y) });
     this.charIdx = {};
     T.chars.forEach((c, i) => (this.charIdx[c.id] = i));
     this.lv = T.upgrade.base.map(() => 0);   // 강화 계열별 단계 (신화는 전설 계열 — T.upGroup)
@@ -124,6 +125,13 @@
   G.oddsCost = function () { return this.oddsLv >= T.odds.cost.length ? Infinity : T.odds.cost[this.oddsLv]; };
   G.luckP = function (i) { return Math.min(1, T.luck.p[i] + this.pity[i]); };
   G.empty = function () { const o = []; this.slots.forEach((s, i) => { if (!s.u) o.push(i); }); return o; };
+  // 새 친구가 설 빈칸: 길에 가까운 바깥 칸부터 무작위 (가운데에 떨어져 아무것도 못 때리는 운을 없앰 — 가운데는 바깥이 다 찬 뒤)
+  G.freeSlot = function () {
+    const free = this.empty();
+    if (!free.length) return -1;
+    const near = Math.min(...free.map((i) => this.slots[i].reach));
+    return this.pick1(free.filter((i) => this.slots[i].reach === near));
+  };
   G.load = function () {
     let n = 0;
     for (const e of this.enemies) n += e.kind === 'boss' ? T.bossWeight : 1;
@@ -157,7 +165,7 @@
     this.summons++;
     const g = this.rollGrade();
     const ch = this.pick1(T.chars).id;
-    const slot = this.pick1(free);
+    const slot = this.freeSlot();
     this.slots[slot].u = this.newUnit(ch, g);
     this.emit('summon', { slot, ch, g, cost });
     return { ok: true, slot };
@@ -233,7 +241,7 @@
     const p = this.luckP(i), g = T.luck.grades[i];
     if (this.rand() < p) {
       this.pity[i] = 0;
-      const slot = this.pick1(free), ch = this.pick1(T.chars).id;
+      const slot = this.freeSlot(), ch = this.pick1(T.chars).id;
       this.slots[slot].u = this.newUnit(ch, g);
       this.emit('gamble', { win: true, i, g, slot, ch, p });
       this.emit('summon', { slot, ch, g, cost: 0, luck: true });
@@ -306,7 +314,7 @@
   G.giveUnit = function (g) {
     const free = this.empty();
     if (!free.length) { this.coins += T.sell[g]; return -1; }   // 빈칸이 없으면 판 값만큼 동전으로
-    const s = this.pick1(free), ch = this.pick1(T.chars).id;
+    const s = this.freeSlot(), ch = this.pick1(T.chars).id;
     this.slots[s].u = this.newUnit(ch, g);
     this.emit('summon', { slot: s, ch, g, cost: 0 });
     return s;

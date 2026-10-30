@@ -1080,7 +1080,9 @@
     const tx = document.createElement('div'); tx.className = 'txt';
     const dmg = g.unitDmg(u), rate = g.unitRate(u), rng = g.unitRange(u);
     tx.innerHTML = '<div class="nm">' + c.name + ' <span class="gr" style="background:' + gr.color + '">' + gr.name + '</span></div>' +
-      '<div class="ds">' + (u.silT > 0 ? '<b style="color:#8a5fd0">침묵 중</b> · ' : '') + '공격 ' + fmt(dmg) + ' · 1초에 ' + rate.toFixed(1) + '번' + (u.haste || u.hasteT > 0 ? ' (버프)' : '') + ' · 사거리 ' + rng.toFixed(1) + '칸' +
+      '<div class="ds">' + (u.silT > 0 ? '<b style="color:#8a5fd0">침묵 중</b> · ' : '') +
+      // 가운데 칸은 길까지 2칸 — 사거리가 그보다 짧으면 아무것도 못 때림 (폰은 한 줄만 보이므로 맨 앞에)
+      (rng < g.slots[sel].reach ? '<b style="color:var(--danger)">여기선 길에 안 닿아요 — 바깥 칸으로 옮겨요</b> · ' : '') + '공격 ' + fmt(dmg) + ' · 1초에 ' + rate.toFixed(1) + '번' + (u.haste || u.hasteT > 0 ? ' (버프)' : '') + ' · 사거리 ' + rng.toFixed(1) + '칸' +
       (g.syn[u.ch] ? ' · <b>같은 친구 +' + Math.round(g.syn[u.ch] * 100) + '%</b>' : '') + '<br>' +
       (M ? '<b>신화 「' + M.name + '」</b> ' + M.desc + ' · ' : '') + c.desc + ' · 스킬 「' + c.skill.name + '」 ' + c.skill.desc + '</div>';
     box.appendChild(tx);

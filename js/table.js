@@ -27,8 +27,8 @@
     diffs: [
       { key: 'easy',   name: '쉬움',   hp: 0.72, cap: 50, chips: [0, 0], color: '#7ccf6a', desc: '처음이라면 여기서' },
       { key: 'normal', name: '보통',   hp: 1,    cap: 40, chips: [0, 0], color: '#5aa7ee', desc: '합성 · 강화를 알면' },
-      { key: 'hard',   name: '어려움', hp: 1.18, cap: 40, chips: [1, 1], color: '#ae78ee', desc: '변수 칩 1개 · 확률 업 · 신화가 필요' },
-      { key: 'hell',   name: '지옥',   hp: 1.25, cap: 30, chips: [1, 2], color: '#e8566b', desc: '변수 칩 1~2개 · 한도 30' },
+      { key: 'hard',   name: '어려움', hp: 1.3,  cap: 40, chips: [1, 1], color: '#ae78ee', desc: '변수 칩 1개 · 확률 업 · 신화가 필요' },
+      { key: 'hell',   name: '지옥',   hp: 1.35, cap: 30, chips: [1, 2], color: '#e8566b', desc: '변수 칩 1~2개 · 한도 30' },
     ],
     // 변수 칩 — 어려움·지옥에서 판마다 무작위로. 시작 화면과 멈춤 화면에 보임
     chips: {

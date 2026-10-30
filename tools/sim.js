@@ -1,4 +1,4 @@
-/* 균형 확인 — 화면 없이 규칙만 돌려 봅니다. 난이도 넷 × 봇 넷 × 씨앗 N 개.
+/* 균형 확인 — 화면 없이 규칙만 돌려 봅니다. 난이도 넷 × 봇 다섯 × 씨앗 N 개.
      node tools/sim.js            # 씨앗 24개
      node tools/sim.js 40 --md    # 씨앗 40개 · README 에 붙일 표(마크다운)
      node tools/sim.js 24 --diff 3 --bot good   # 하나만
@@ -71,12 +71,21 @@ const BOTS = {
   good(g) { smart(g); },
   // 느림: 딴짓하는 사람처럼 3초에 한 번만, 보상은 첫 카드, 확률 업 · 행운 소환은 안 씀(있는 줄 모름)
   slow(g, t) { if (Math.floor(t / 3) !== Math.floor((t - 0.05) / 3)) smart(g, { firstCard: true, odds: false, luck: false }); },
+  // 대충 하는 사람(인스타로 온 첫 판 · 2026-10-30 페르소나): 2초에 한 번 — 빈칸 있으면 소환, 보이는 짝은 전부 합성, 꽉 차면 싼 강화부터.
+  // 잘하는 봇의 「동전당 힘」 셈은 합성으로 생기는 값을 안 쳐서, 이렇게 소환만 몰아도 잘하는 봇만큼 깸 — 난이도는 이 봇으로도 봄
+  casual(g, t) {
+    if (Math.floor(t / 2) === Math.floor((t - 0.05) / 2)) return;
+    if (g.pick) g.choose(0);
+    mergeAll(g);
+    if (g.empty().length) { if (g.coins >= g.cost()) g.summon(); }
+    else for (let k = 0; k < T.upgrade.base.length; k++) if (g.coins >= g.upCost(k)) { g.upgrade(k); break; }
+  },
   // 합성 안 함: 소환만 (보상은 첫 카드)
   nomerge(g) { if (g.pick) g.choose(0); if (g.empty().length && g.coins >= g.cost()) g.summon(); },
   // 가만히: 처음 다섯 번만 소환하고 손 놓음
   idle(g) { if (g.pick) g.choose(0); if (g.summons < 5 && g.coins >= g.cost()) g.summon(); },
 };
-const NAMES = { good: '잘하는 봇', slow: '느린 봇', nomerge: '합성 안 하는 봇', idle: '가만히 봇' };
+const NAMES = { good: '잘하는 봇', slow: '느린 봇', casual: '대충 소환 봇', nomerge: '합성 안 하는 봇', idle: '가만히 봇' };
 
 function play(diff, bot, seed) {
   const g = new Game({ seed, diff });
