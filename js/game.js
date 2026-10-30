@@ -65,6 +65,40 @@
   // 쉬움·보통은 처음부터, 그 위는 바로 아래 난이도를 한 번이라도 깨면
   function unlocked(r, i) { return i <= 1 || !!(r.d && r.d[T.diffs[i - 1].key] && r.d[T.diffs[i - 1].key].clears); }
   function found(r) { return Array.isArray(r.found) ? r.found : []; }
+  // 기록 옮기기 코드에 담을 것 — 기기별 설정(set)은 빼고 기록만
+  function packRec(r) { return { plays: r.plays || 0, d: r.d || {}, found: found(r), tut: r.tut ? 1 : 0 }; }
+  // 두 기록 합치기 — 더 좋은 쪽이 남게(판 수 · 최고 웨이브 · 클리어 · 무한은 큰 쪽, 가장 빠른 클리어는 작은 쪽, 발견은 합집합)
+  function mergeRec(a, b) {
+    const r = Object.assign({}, a), num = (v) => (Number.isFinite(+v) && +v > 0 ? Math.round(+v) : 0);
+    r.plays = Math.max(num(a.plays), num(b.plays));
+    r.d = Object.assign({}, a.d || {});
+    T.diffs.forEach((D) => {
+      const x = r.d[D.key] || {}, y = (b.d && b.d[D.key]) || {}, o = {};
+      ['plays', 'best', 'clears', 'endless'].forEach((k) => { const v = Math.max(num(x[k]), num(y[k])); if (v) o[k] = v; });
+      const ts = [num(x.bestTime), num(y.bestTime)].filter(Boolean);
+      if (ts.length) o.bestTime = Math.min.apply(null, ts);
+      if (Object.keys(o).length) r.d[D.key] = o;
+    });
+    r.found = Array.from(new Set(found(a).concat(Array.isArray(b.found) ? b.found : []))).filter((i) => Number.isInteger(i) && i >= 0 && i < T.recipes.length);
+    if (b.tut) r.tut = 1;
+    return r;
+  }
+
+  // ── 앱으로 설치 · 인앱 브라우저(인스타 · 카톡) 안내 — js/inapp.js (게임과 무관한 공용 파일) ──
+  // 시작 화면 배너 · 멈춤/설정 버튼 · 결과 화면 한 줄 · 웨이브 3 클리어 때 토스트 한 번. 판 · 규칙은 건드리지 않음
+  const IA = window.InApp || null;
+  let booted = false;
+  if (IA) IA.init({
+    id: 'ck-defense', name: '치이카와 랜덤 디펜스', short: '랜덤 디펜스', icon: 'assets/icon/icon-192.png', sw: 'sw.js',
+    cls: { sheet: 'sheet', btn: 'btn', btn2: 'btn sky' },
+    toastIn: '#boardWrap',
+    stores: [{ key: STORE, pack: packRec, merge: mergeRec }],
+    // 보상 창 · 덮개 · 처음 안내 · 큰 배너와 겹치지 않을 때만 (아니면 inapp.js 가 2초 뒤 다시 물어봄)
+    canNudge: () => phase === 'play' && !!g && !g.pick && !g.over && !coach && ov.hidden && view.t - bannerAt > 1.6,
+    onOpen: () => { if (phase === 'play') pauseScreen(); },
+    onImport: () => { if (booted && phase === 'title') titleScreen(); },
+  });
+  const iaHtml = (fn, a) => (IA ? IA[fn](a) : '');
 
   // ── 크기 맞추기 ───────────────────────────────────────────
   // 기기 배치 — UA 대신 화면 너비 · 방향으로: phone(<600) · tab(600~839, 또는 세로로 긴 1100 미만) · wide(가로 태블릿 · 노트북)
@@ -404,6 +438,8 @@
           else if (e.traits.length && e.traits.some((k) => TR[k].from === e.n)) cutin('새 괴물: ' + traitNames(e.traits.filter((k) => TR[k].from === e.n)), TR[e.traits.find((k) => TR[k].from === e.n)].desc, 'wave');
           else banner('웨이브 ' + e.n, (e.traits.length ? traitNames(e.traits) : '') + it);
           S.play('wave');
+          // 웨이브 3 을 넘긴 즈음 — 손에 익었을 때 한 번만 「앱으로 설치」 토스트 (판 위쪽 가장자리, 6초)
+          if (e.n === 4 && IA) setTimeout(() => IA.nudge(), 2500);
           break;
         }
         case 'boss': {
@@ -1201,6 +1237,7 @@
     nextSeed = +Q.get('seed') || ((Date.now() & 0xffffff) | 1);
     if (!unlocked(r, diffSel)) diffSel = 1;
     open(
+      iaHtml('bannerHtml') +
       '<div class="cover" role="img" aria-label="표지 — 들판 너머 괴물 무리"></div>' +
       '<h1>치이카와 <em>랜덤</em> 디펜스</h1>' +
       '<div class="sub">들판 토벌대 · 비영리 팬 게임</div>' +
@@ -1267,7 +1304,8 @@
       row('stVib', '진동', st.vib, navigator.vibrate ? '합성 · 보스 등장' : '이 기기는 지원 안 함') +
       row('stCalm', '움직임 줄이기', st.calm, '흔들림 · 번쩍임 끔') +
       '<label><span>기본 빠르기</span><select id="stSpd">' + speeds.map((v, i) => '<option value="' + i + '"' + (i === st.spd ? ' selected' : '') + '>×' + v + '</option>').join('') + '</select></label>' +
-      '</div><div class="row-btns"><button class="btn" id="setDone">' + (back === 'pause' ? '돌아가기' : '닫기') + '</button></div>');
+      '</div>' + (IA ? '<div class="row-btns set-more">' + iaHtml('buttonHtml', 'btn sky') + '<button class="btn sky" data-ia="transfer">기록 옮기기</button></div>' : '') +
+      '<div class="row-btns"><button class="btn" id="setDone">' + (back === 'pause' ? '돌아가기' : '닫기') + '</button></div>');
     const save = () => {
       const r = rec();
       r.set = { sfx: $('stSfx').checked, music: $('stMusic').checked, vib: $('stVib').checked, calm: $('stCalm').checked, spd: +$('stSpd').value };
@@ -1280,7 +1318,7 @@
   function pauseScreen() {
     phase = 'pause';
     open('<h2>잠깐 쉬어요</h2><p class="sub">' + T.diffs[g.diff].name + ' · 웨이브 ' + g.wave + ' · 동전 ' + g.coins + ' · 클로버 ' + g.clovers + '</p>' + (g.chips.length ? '<div class="vchips">' + chipHtml(g.chips) + '</div>' : '') +
-      '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="setBtn2">설정</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button></div>' +
+      '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="setBtn2">설정</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button>' + iaHtml('buttonHtml', 'btn sky') + '</div>' +
       '<p class="sub keys">단축키: 스페이스 소환 · 1~4 강화 · Q 확률 · W 행운 · E 신화 · F 빠르기 · P/Esc 멈춤</p>');
     btn('resumeBtn', () => { close(); phase = 'play'; });
     btn('setBtn2', () => settingsScreen('pause'));
@@ -1311,7 +1349,8 @@
       '<div><b style="color:' + (g.bestGrade >= 0 ? GR[g.bestGrade].color : 'inherit') + '">' + (g.bestGrade >= 0 ? GR[g.bestGrade].name : '-') + '</b><span>최고 등급</span></div>' +
       '</div>' +
       '<div class="rec">' + D.name + ' 최고 웨이브 ' + d.best + ' · 클리어 ' + (d.clears || 0) + '번' + (d.bestTime ? ' · 가장 빠른 클리어 ' + mmss(d.bestTime) : '') + (d.endless ? ' · 무한 ' + d.endless + '웨이브' : '') + ' (이 브라우저에만 저장)</div>' +
-      '<div class="row-btns">' + (e.win ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>'
+      '<div class="row-btns">' + (e.win ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>' +
+      iaHtml('lineHtml')
     );
     btn('endlessBtn', () => { if (g.goEndless()) { close(); phase = 'play'; onEvents(); } });
     // 판에 남은 친구들
@@ -1472,8 +1511,11 @@
     g = new Core.Game({ seed: 1 });   // 시작 화면 뒤에 빈 판을 보여 주려고
     fit();
     titleScreen();
+    booted = true;
     hudTick();
     requestAnimationFrame(frame);
+    // 지금까지 받은 그림 · 코드를 서비스워커 캐시에 담아 둠 → 다음엔 인터넷 없이도 열림
+    if (IA) setTimeout(() => IA.warm(), 800);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); });
   }); }); });
 
@@ -1502,6 +1544,7 @@
     spawnTrait(t, n) { for (let k = 0; k < (n || 1); k++) g.spawn({ k: 'blob', t }, 1 + k * 0.6); return true; },
     spawnBoss(bt, at) { const w = (T.bosses.findIndex((b) => b.key === bt) + 1) * T.bossEvery; const keep = g.wave; g.wave = w; const e = g.spawn({ k: 'boss', t: null }, at || 2); g.wave = keep; e.bs.t = 1.5; return true; },
     monReady: () => MON.ready,
+    inapp: () => (IA ? IA.env() : null),
     seen: () => Object.assign({}, seen),
     clear() { g.enemies = []; g.spawnQ = []; return true; },
     // 친구 그림을 다 받았는지 · 칸 위 키(도트) · 맞은 자리 효과 · 감정 수

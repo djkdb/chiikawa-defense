@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "치이카와 랜덤 디펜스",
+  "short_name": "랜덤 디펜스",
+  "description": "치이카와 친구들을 무작위로 소환 · 합성해서 괴물을 막는 비영리 팬 디펜스 게임 (치이카와 © nagano · 공식과 관련 없음)",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./?src=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#bfe3ff",
+  "theme_color": "#bfe3ff",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "assets/icon/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

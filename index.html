@@ -6,9 +6,18 @@
 <title>치이카와 랜덤 디펜스</title>
 <meta name="description" content="치이카와 친구들을 무작위로 소환하고 합성해서 길을 도는 작은 괴물을 막는 팬 디펜스 게임. 비영리 팬 게임 · 치이카와 © nagano · 공식과 관련 없음 · 캐릭터 그림은 팬 도트 시트.">
 <meta name="theme-color" content="#bfe3ff">
+<!-- 앱으로 설치 (PWA) — manifest · 아이콘은 tools/make_icons.py, 안내 · 서비스워커 등록은 js/inapp.js -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="랜덤 디펜스">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="application-name" content="랜덤 디펜스">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%239fcf6a'/%3E%3Crect x='3' y='4' width='10' height='9' fill='%23fff'/%3E%3Crect x='4' y='3' width='2' height='2' fill='%23fff'/%3E%3Crect x='10' y='3' width='2' height='2' fill='%23fff'/%3E%3Crect x='5' y='7' width='1' height='2' fill='%232a2120'/%3E%3Crect x='10' y='7' width='1' height='2' fill='%232a2120'/%3E%3Crect x='4' y='9' width='2' height='1' fill='%23ffa0b4'/%3E%3Crect x='10' y='9' width='2' height='1' fill='%23ffa0b4'/%3E%3C/svg%3E">
 <!-- 갈무리 (SIL OFL 1.1, © Lee Minseo) — 한글 도트 글꼴. 못 받으면 시스템 글꼴로 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
+<link rel="stylesheet" href="inapp.css">
 <style>
 :root{
   --ink:#4a3530; --paper:#ffffff; --sky-bg:#bfe3ff; --sky-bg-2:#e3f2ff; --mute:#9a7f6a;
@@ -438,6 +447,7 @@ body[data-lay="phone"] .tool{min-width:0}
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
 <div id="loading" role="status"><b>들판으로 가는 중…</b><div class="lbar"><i id="loadFill"></i></div><p id="loadTip">팁: 같은 친구 · 같은 등급 둘을 겹치면 한 등급 위로!</p></div>
 
+<script src="js/inapp.js"></script>
 <script src="js/table.js"></script>
 <script src="assets/chars/chars.js"></script>
 <script src="js/core.js"></script>

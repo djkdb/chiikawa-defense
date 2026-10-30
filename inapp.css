@@ -1,0 +1,80 @@
+/* inapp.css — js/inapp.js 의 안내 창 · 배너 · 토스트. 게임과 무관한 독립 파일.
+   색은 --ia-* 만 씀 — 각 게임의 값이 있으면(--ink · --yellow …) 그걸 따름. 크림 · 베이지 안 씀(흰 종이 · 노랑 · 하늘).
+   안내 창 종이 · 버튼 모양은 InApp.init({cls}) 로 그 게임 UI 키트 클래스를 끼워 씀 (없으면 아래 .ia-sheet · .ia-btn). */
+:root{
+  --ia-ink:var(--ink,#4a3530); --ia-paper:var(--paper,#fff); --ia-sky:var(--sky,#cfe7ff); --ia-sky-2:var(--sky-bg-2,#e3f2ff);
+  --ia-yellow:var(--yellow,#ffe08a); --ia-yellow-d:var(--yellow-d,#efbf4a); --ia-mute:var(--mute,#8a7a70);
+  --ia-hl-line:#2f7ad8; --ia-warn:#e8566b; --ia-good:#3f9a3a;
+}
+/* 덮개 — 각 게임 덮개(z 5 안팎) 위 · 로딩 화면 아래가 아니어도 됨(로딩 중엔 안 엶) */
+.ia-ov{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(40,40,60,.45);
+  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+.ia-ov[hidden]{display:none!important}
+.ia-ov:not([hidden]){animation:iaIn .16s ease-out}
+.ia-panel{word-break:keep-all;overflow-wrap:anywhere;width:min(460px,100%)!important;max-height:100%;overflow:auto;text-align:center;-webkit-user-select:text;user-select:text}
+.ia-sheet{background:var(--ia-paper);border:4px solid var(--ia-ink);border-radius:18px;padding:12px 14px;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+.ia-h{font:18px/1.25 var(--f-b,inherit);margin:4px 0 4px}
+.ia-lead{margin:2px 0 6px;font-size:13px;line-height:1.45}
+.ia-sub{margin:4px 0;font-size:12px;line-height:1.45;color:var(--ia-ink)}
+.ia-sub small,.ia-step small{color:var(--ia-mute)}
+.ia-note{margin:8px 0 4px;padding:6px 8px;font-size:11.5px;line-height:1.45;text-align:left;background:var(--ia-sky-2);border:2px dashed var(--ia-hl-line);border-radius:10px}
+.ia-warn{margin:4px 0;font-size:12px;color:var(--ia-warn)}
+.ia-list{text-align:left;font-size:12.5px;line-height:1.5;padding-left:18px;margin:6px 0}
+.ia-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
+.ia-acts:empty{display:none}
+.ia-acts>*{min-height:44px}
+/* 기본 버튼 (게임 키트를 안 끼울 때) */
+.ia-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;padding:4px 14px;border:3px solid var(--ia-ink);border-radius:12px;background:var(--ia-yellow);box-shadow:inset 0 -4px 0 var(--ia-yellow-d);font:14px var(--f-b,inherit);color:var(--ia-ink);cursor:pointer;white-space:nowrap}
+.ia-btn2{background:var(--ia-sky);box-shadow:inset 0 -4px 0 #8fbbe8}
+.ia-acts .ia-ico{width:18px;height:18px}
+/* 단계 그림 — 폰 화면을 아주 작게 그린 것. 눌러야 할 곳만 노랑으로 깜빡 */
+.ia-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;list-style:none;padding:0;margin:8px 0 4px}
+.ia-step{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ia-step p{margin:0;font-size:11px;line-height:1.35}
+.ia-step p>b:first-child{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--ia-ink);color:#fff;font-size:10px;text-align:center}
+.ia-shot{height:76px;border:2px solid var(--ia-ink);border-radius:10px;background:#fff;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.ia-bar{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:3px 5px;background:var(--ia-sky-2);font-size:11px;line-height:1;min-height:24px;white-space:nowrap}
+.ia-bar b{font-size:9.5px}
+.ia-url{flex:1;min-width:0;font-size:8.5px;color:var(--ia-mute);background:#fff;border-radius:6px;padding:2px 4px;overflow:hidden;text-overflow:ellipsis}
+.ia-page{flex:1;padding:6px;display:flex;flex-direction:column;gap:5px}
+.ia-page i{display:block;height:5px;border-radius:3px;background:#d8e8f6}
+.ia-menu{display:flex;flex-direction:column;gap:2px;padding:4px;font-size:9.5px;text-align:left}
+.ia-menu i{font-style:normal;padding:3px 4px;border-radius:5px;background:#f2f6fb;line-height:1.25}
+.ia-hl{background:var(--ia-yellow)!important;outline:2px solid var(--ia-hl-line);outline-offset:-1px;border-radius:6px;padding:1px 4px;animation:iaBlink 1.1s ease-in-out infinite}
+.ia-ico{width:14px;height:14px;vertical-align:-3px;color:var(--ia-hl-line)}
+.ia-dots{fill:currentColor;color:var(--ia-ink)}
+.ia-home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.ia-home img{width:28px;height:28px;border-radius:7px}
+.ia-home small{font-size:8.5px;color:var(--ia-ink)}
+.ia-big{flex:1;display:flex;align-items:center;justify-content:center}
+.ia-big .ia-ico{width:40px;height:40px}
+/* 기록 옮기기 */
+.ia-lbl{display:block;text-align:left;font-size:12px;margin:8px 0 2px}
+.ia-code{width:100%;font:11px/1.35 ui-monospace,Menlo,monospace;border:2px solid var(--ia-ink);border-radius:8px;padding:5px 6px;resize:none;background:#fff;color:var(--ia-ink);word-break:break-all}
+.ia-msg{min-height:1.3em;margin:4px 0 0;font-size:12px}
+.ia-good{color:var(--ia-good)} .ia-bad{color:var(--ia-warn)}
+/* 시작 화면 배너 (한 줄 · 닫기 가능) */
+.ia-banner{word-break:keep-all;display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:4px 4px 4px 10px;border:2px solid var(--ia-ink);border-radius:12px;background:var(--ia-sky-2);font-size:12px;line-height:1.3;text-align:left}
+.ia-banner[hidden]{display:none!important}
+.ia-banner.ia-ok{justify-content:center;padding:6px 10px;background:#e2f6d5}
+.ia-bt{flex:1;min-width:0}
+.ia-small{min-height:36px!important;font-size:13px!important;padding:2px 10px!important;flex:none}
+.ia-x{flex:none;width:36px;height:36px;border:0;background:none;font-size:14px;color:var(--ia-mute);cursor:pointer}
+/* 결과 화면 한 줄 */
+.ia-line{word-break:keep-all;margin:8px 0 0;font-size:12px;color:var(--ia-ink)}
+.ia-line[hidden]{display:none}
+.ia-link{border:0;background:none;padding:6px 4px;min-height:36px;font:inherit;font-weight:bold;color:var(--ia-hl-line);text-decoration:underline;cursor:pointer}
+/* 게임 중 토스트 — 판 위쪽 가장자리에 작게, 6초 뒤 사라짐. 안 보일 땐 눌리지 않음 */
+.ia-toast{position:absolute;left:50%;top:4px;z-index:4;transform:translate(-50%,-150%);opacity:0;pointer-events:none;
+  max-width:94%;min-height:32px;padding:5px 12px;border:2px solid var(--ia-ink);border-radius:16px;background:#fff;color:var(--ia-ink);
+  font:12px/1.2 var(--f,inherit);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 3px 0 rgba(0,0,0,.2);cursor:pointer;transition:transform .25s ease-out,opacity .25s}
+.ia-toast b{color:var(--ia-hl-line)}
+.ia-toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.ia-toast.ia-fixed{position:fixed;top:max(8px,env(safe-area-inset-top));z-index:30}
+/* 짧은 알림 (복사됨 · 설치됨) */
+.ia-say{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;max-width:90vw;padding:7px 14px;border-radius:12px;background:var(--ia-ink);color:#fff;font-size:13px;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.ia-say.on{opacity:.95;pointer-events:auto}
+@keyframes iaIn{from{opacity:0}to{opacity:1}}
+@keyframes iaBlink{0%,100%{box-shadow:0 0 0 0 rgba(47,122,216,0)}50%{box-shadow:0 0 0 3px rgba(47,122,216,.45)}}
+@media (prefers-reduced-motion:reduce){.ia-hl,.ia-ov:not([hidden]){animation:none}.ia-toast{transition:none}}
+body.calm .ia-hl{animation:none}

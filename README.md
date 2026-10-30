@@ -16,6 +16,10 @@ assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤�
 assets/bg/          배경 맵(낮 들판 · 밤 숲) · 표지 (tools/tiles_slice.py)
 js/tiles.js         타일로 판 바닥 · 위 여백 띠 굽기 (못 받으면 art.js 의 예전 바닥)
 tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 만든 그림)
+js/inapp.js         앱으로 설치 안내 · 인앱 브라우저 판별 · 서비스워커 등록 · 기록 옮기기 (게임과 무관 — 다른 게임에 복사해 씀)
+inapp.css           그 안내 창 · 배너 · 토스트 모양 (--ia-* 값 · 게임 키트 클래스를 끼워 씀)
+sw.js               서비스워커 — 오프라인에서도 열리게 (코드 network-first · 그림 stale-while-revalidate)
+manifest.webmanifest  설치 정보(이름 · 아이콘 · 전체 화면 · 세로). 아이콘은 assets/icon/ (tools/make_icons.py)
 ```
 
 ## 규칙 (v2)
@@ -71,6 +75,35 @@ tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 만든 �
 - 설정(윗줄 「설정」 · 멈춤 메뉴): 효과음 · 음악(Web Audio 로 만든 조용한 들판 노래) · 진동(합성 · 보스 등장 · 신화, 지원 기기만) · 움직임 줄이기(흔들림 · 번쩍임 끔, OS 설정도 따름) · 기본 빠르기.
 - 로딩 화면(막대 + 팁) · 덮개 화면 짧은 페이드 · 버튼 누르는 순간 눌림 · 배너는 겹치지 않게 차례로 · 토스트는 누르면 닫힘 · 처음 1판만 단계식 안내(조건을 채우면 다음, 「건너뛰기」).
 
+## 앱으로 설치 (PWA) · 인앱 브라우저
+
+릴스를 보고 들어오는 사람은 거의 **인스타그램 앱 안 브라우저**로 엶. 거기선 홈 화면 추가가 안 되므로 「바깥 브라우저로 → 설치」 로 이끔.
+UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 씀(배치는 여전히 화면 크기).
+
+| 어디서 열었나 | 시작 화면 배너 버튼 | 누르면 |
+|---|---|---|
+| 인스타 · 페북 · 카톡 · 네이버 · 다음 · 스레드 · 그 밖의 웹뷰 — **Android** | 크롬에서 열기 | `intent://…#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=…;end` 로 Chrome. 1.5초 뒤에도 그대로면 ⋮ → 「다른 브라우저로 열기」 그림 안내 + 주소 복사 |
+| 같은 앱들 — **iOS** (iPad 는 Mac UA + `maxTouchPoints>1`) | 설치 방법 | 바깥으로 자동 전환은 안 됨 → ⋯ → 「외부 브라우저에서 열기」(인스타 · 페북) / 「다른 브라우저로 열기」(카톡 · 네이버) 그림 안내 + 주소 복사 |
+| 라인 | 브라우저로 열기 / Safari로 열기 | 주소에 `openExternalBrowser=1` 을 붙여 다시 엶(LINE 이 문서로 밝힌 방법) |
+| iOS Safari (· iOS Chrome 등) | 설치 방법 | 공유 → 「홈 화면에 추가」 → 「추가」 그림 안내 (iOS 26 처럼 공유가 ⋯ 안에 있으면 ⋯ 먼저) |
+| Android Chrome · 삼성 인터넷 | 설치 (설치 창이 준비됐으면) / 설치 방법 | `beforeinstallprompt` 를 잡아 두었다가 `prompt()`. 아직 안 왔으면 ⋮ → 「앱 설치」 안내 |
+| 데스크톱 Chrome · Edge | 설치 (설치 창이 준비됐을 때만 배너) | `prompt()`. 그 밖의 데스크톱은 배너 없음 · 멈춤/설정 버튼에서만 안내 |
+| 이미 앱으로 켬 (`display-mode: standalone/fullscreen` · `navigator.standalone`) | 없음 | 배너 · 버튼 · 토스트 · 결과 한 줄 전부 숨김 |
+
+- 보이는 자리: 시작 화면 위 한 줄 배너(✕ 로 닫으면 3일 숨김) · 멈춤 화면과 설정의 「📲 앱으로 설치」 · 웨이브 3 을 넘긴 순간 판 위쪽 가장자리 토스트 한 번(6초, 3일에 한 번, 보상 창 · 처음 안내 · 큰 배너와 안 겹칠 때만, 누르면 멈추고 안내) · 결과 화면 한 줄.
+- **기록**: 인앱 브라우저 · 바깥 브라우저 · 설치 앱(iOS 는 Safari 와 홈 화면 앱도)은 저장 공간이 따로 → 안내 창에 솔직하게 한 줄. 바깥으로 보낼 때 주소에 기록 코드를 담아(`?ia_rec=`) 보내고, 받은 쪽이 합친 뒤 주소에서 지움.
+  안 넘어가면 설정 → 「기록 옮기기」 (코드 복사 · 붙여 넣기). 코드엔 기록만(판 수 · 난이도별 최고 · 신화 발견 · 안내 본 것), 기기별 설정은 안 담음. 합칠 땐 더 좋은 쪽이 남음.
+- 서비스워커: https · localhost 에서만 등록. `?nosw` 면 등록하지 않고 있던 것도 지움. 그림을 크게 바꿨을 때만 `sw.js` 의 `VERSION` 을 올리면 옛 캐시가 지워짐(코드는 늘 network-first).
+- 아이콘: `python3 tools/make_icons.py --board /tmp/icons.png` (하늘 바탕 + 풀 언덕 + 치이카와, maskable 은 가운데 80% 원 안).
+
+### 다른 게임에 붙이기 (자격증 수첩 · 토익 타자 …)
+
+1. `js/inapp.js` · `inapp.css` · `sw.js` 를 그 폴더에 복사 → `sw.js` 맨 위 「바꿀 곳」 셋(`VERSION` · `PREFIX` · `CORE`)만 고침.
+2. `manifest.webmanifest` 를 복사해 이름 · 색 · 아이콘을 바꾸고, `tools/make_icons.py` 의 `CHAR` 를 그 게임 그림으로 → `assets/icon/`.
+3. `<head>` 에 manifest · apple-touch-icon · `apple-mobile-web-app-*` · `inapp.css` 링크(이 index.html 의 「앱으로 설치」 줄을 그대로), 게임 스크립트보다 먼저 `<script src="js/inapp.js">`.
+4. 게임 JS 맨 위에서 `InApp.init({ id, name, short, icon, sw: 'sw.js', cls: {sheet, btn, btn2}, toastIn, stores: [{ key, pack, merge }], canNudge, onOpen, onImport })` (이 게임은 `js/game.js` 의 「앱으로 설치」 블록).
+5. 화면에 `InApp.bannerHtml()`(시작) · `InApp.buttonHtml(cls)`(멈춤 · 설정) · `<button data-ia="transfer">`(기록 옮기기) · `InApp.lineHtml()`(결과)를 넣고, 손에 익을 때쯤 `InApp.nudge()`, 그림을 다 받은 뒤 `InApp.warm()`.
+
 ## 그림
 
 - 친구 8명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py`).
@@ -124,4 +157,8 @@ tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 만든 �
 ## 확인
 
 - `python3 tools/play_check_v2.py` — 먼저 기기 6 크기(390×844 · 360×740 · 820×1180 · 1180×820 · 1366×768 · 1440×900)에서 배치를 잼(기대 배치 · 스크롤 없음 · 판이 화면 안 · 판넬이 판을 안 덮음 · 버튼 44px · 로딩/시작/판/설정/멈춤 화면 → `board_layout.png`, `--layout-only` 로 이것만). 그다음 데스크톱(1440×900) · 폰(390×844)에서 실제 입력으로: 쉬움 고르기 → 클리어(소환 · 끌어 합성 · 강화 · 확률 · 행운 · 3택 카드 · 팔기, 특성 5종 처치 · 보스 기술 넷 발생을 셈) → 무한 모드 진입 → 신화 레시피 1회(판 준비만 테스트 훅) → 지옥 패배. 콘솔 오류 0 이어야 통과. 판 PNG 는 본 레포 `output/chiikawa-defense-check/v2/` (커밋 안 함).
+- `python3 tools/pwa_check.py` — 앱 설치 · 인앱 안내. UA 를 바꿔(인스타 iOS/Android · 카톡 iOS/Android · iOS Safari · iPad · Android Chrome · 데스크톱 Chrome + 설치 프롬프트 흉내) 390×650 · 390×844 에서
+  시작 배너 · 안내 창(한 화면 · 가로 넘침 없음) · 웨이브 4 시작 토스트(친구 칸 안 가림) · 멈춤 · 설정 · 기록 옮기기 · 결과 한 줄을 찍고, manifest 내용 · 아이콘 실제 크기 · 서비스워커가 페이지를 다스리는지 ·
+  **인터넷 끊고 새로고침해도 게임이 열리고 소환되는지**(CDN 글꼴 포함) · 기록 코드 왕복 · 합치기 · 잘린 코드 거절 · `?nosw` 를 잼. 콘솔 오류 0. 판은 본 레포 `output/chiikawa-defense-check/pwa/` (커밋 안 함).
+  실제 기기에서만 되는 것(진짜 설치 창 · intent 로 Chrome 이 열리는지 · 인스타/카톡 ⋯ 메뉴 이름 · 외부 브라우저로 넘길 때 주소의 기록 코드가 같이 가는지 · iOS 홈 화면 앱 모양)은 여기서 못 봄.
 - `python3 tools/play_check.py` — 예전(v1) 확인. 캐릭터 그림 장면(치이카와 고해상도 · 확대 방식) 용으로 남겨 둠. v2 규칙에서 그 봇은 보통 난이도 클리어를 보장하지 않음.
