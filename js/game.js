@@ -1314,7 +1314,13 @@
       spd = r.set.spd; $('spdBtn').firstChild.textContent = '×' + speeds[spd];
     };
     ['stSfx', 'stMusic', 'stVib', 'stCalm', 'stSpd'].forEach((id) => $(id).addEventListener('change', () => { save(); S.play('pick'); if (id === 'stVib' && $(id).checked) vib(20); }));
-    btn('setDone', () => { if (back === 'pause' && g && !g.over) pauseScreen(); else if (phase === 'title' || !g || g.over) titleScreen(); else { close(); phase = 'play'; } });
+    btn('setDone', () => {
+      if (back === 'pause' && g && !g.over) pauseScreen();
+      else if (phase === 'end' && endInfo) resultScreen();
+      else if (phase === 'end') close();   // 끝 연출 중(결과 화면 전) — endScreen 이 곧 엶
+      else if (phase === 'title' || !g || g.over) titleScreen();
+      else { close(); phase = 'play'; }
+    });
   }
   function pauseScreen() {
     phase = 'pause';
@@ -1326,8 +1332,11 @@
     btn('codexBtn', () => codexScreen(true));
     btn('quitBtn', () => { if (coach) coachEnd(false); titleScreen(); });
   }
+  // 판이 끝나면 기록은 한 번만 남기고(endScreen), 결과 화면은 몇 번이든 다시 그림(resultScreen).
+  // 끝나는 순간 설정 창이 열려 있으면 덮지 않고 기다렸다가, 설정을 닫으면 결과 화면으로 돌아감
+  let endInfo = null;
   function endScreen(e) {
-    if (phase !== 'end') return;
+    if (phase !== 'end' || endInfo) return;
     const r = rec(), D = T.diffs[g.diff], d = drec(r, g.diff);
     const wasLocked = g.diff + 1 < T.diffs.length && !unlocked(r, g.diff + 1);
     // 무한 모드에서 진 판은 클리어 기록에 이미 들어 있으므로 판 수를 다시 세지 않음
@@ -1338,6 +1347,12 @@
     saveRec(r);
     const opened = e.win && wasLocked && unlocked(r, g.diff + 1) ? T.diffs[g.diff + 1].name : '';
     const isBest = e.win && d.bestTime === Math.round(g.time);
+    endInfo = { e, opened, isBest };
+    if (!ov.hidden && sheet.querySelector('#setDone')) return;
+    resultScreen();
+  }
+  function resultScreen() {
+    const { e, opened, isBest } = endInfo, D = T.diffs[g.diff], d = drec(rec(), g.diff);
     open(
       (e.win ? '<h1>클리어!</h1><div class="sub">' + D.name + ' · 들판에 평화가 왔어요' + (opened ? ' · <b>「' + opened + '」 열림!</b>' : '') + '</div>'
         : e.endless ? '<h1>무한 모드 끝</h1><div class="sub">' + D.name + ' · ' + e.wave + '웨이브까지 버텼어요 · ' + e.why + '</div>'
@@ -1353,7 +1368,7 @@
       '<div class="row-btns">' + (e.win ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>' +
       iaHtml('lineHtml')
     );
-    btn('endlessBtn', () => { if (g.goEndless()) { close(); phase = 'play'; onEvents(); } });
+    btn('endlessBtn', () => { if (g.goEndless()) { endInfo = null; close(); phase = 'play'; onEvents(); } });
     // 판에 남은 친구들
     const ids = [];
     g.slots.forEach((sl) => { if (sl.u && ids.length < 8) ids.push(sl.u.ch); });
@@ -1424,6 +1439,7 @@
   function start() {
     const seed = nextSeed || +Q.get('seed') || undefined;
     nextSeed = 0;
+    endInfo = null;
     g = new Core.Game({ seed, diff: diffSel });
     setBg(g.diff);
     view.an.clear(); txtAt.clear(); view.fx = []; view.texts = []; view.flyGhosts = []; view.cards = [];
