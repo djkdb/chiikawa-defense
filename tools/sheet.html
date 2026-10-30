@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>그림 시트</title>
+<style>
+  body { margin: 0; background: #fff4e0; font: 14px/1.4 sans-serif; color: #4a3530; padding: 16px; }
+  h2 { font-size: 15px; margin: 18px 0 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  figure { margin: 0; text-align: center; }
+  canvas { image-rendering: pixelated; display: block; background: #fde3ec; }
+  figcaption { font-size: 12px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<!-- 그림 확인용 — 게임에는 안 쓰입니다. tools/play_check.py 가 이 페이지를 찍어 판에 붙입니다. -->
+<h2>괴물 (×6)</h2><div class="row" id="mon"></div>
+<h2>캐릭터 (assets/chars/*.png · 없으면 자리표시, ×4)</h2><div class="row" id="chars"></div>
+<h2>투사체 · 동전 · 반짝이 (×6)</h2><div class="row" id="shots"></div>
+<h2>판 바닥 (×3)</h2><div class="row" id="floor"></div>
+<script src="../js/table.js"></script>
+<script src="../assets/chars/chars.js"></script>
+<script src="../js/art.js"></script>
+<script>
+  const T = CD_TABLE;
+  const put = (where, img, k, label) => {
+    const f = document.createElement('figure');
+    const c = document.createElement('canvas');
+    c.width = img.width * k; c.height = img.height * k;
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, c.width, c.height);
+    f.appendChild(c);
+    const cap = document.createElement('figcaption'); cap.textContent = label; f.appendChild(cap);
+    document.getElementById(where).appendChild(f);
+  };
+  // 시트는 페이지 기준 경로라 한 단계 위로
+  const A = CD.art.build(T);
+  const base = document.createElement('base'); base.href = '../'; document.head.appendChild(base);
+  const K = T.enemy.kinds;
+  put('mon', A.enemy.blob[0], 6, K.blob.name); put('mon', A.enemy.blob[1], 6, K.blob.name + ' 2');
+  put('mon', A.enemy.fast[0], 6, K.fast.name); put('mon', A.enemy.fast[1], 6, K.fast.name + ' 2');
+  put('mon', A.enemy.tank[0], 6, K.tank.name); put('mon', A.flashOf(A.enemy.tank[0]), 6, '맞음');
+  A.enemy.boss.forEach((b, i) => put('mon', b[i % 2], 4, K.boss.name + ' ' + (i + 1)));
+  for (const k in A.shot) put('shots', A.shot[k], 6, k);
+  put('shots', A.coin, 6, '동전');
+  for (const k in A.spark) put('shots', A.spark[k], 6, k);
+  put('floor', A.floor, 3, T.board.cols + '×' + T.board.rows);
+  A.loadChars(T.chars, () => {
+    T.chars.forEach((c) => { const C = A.char[c.id]; put('chars', C.img, C.real ? 4 : 4, c.name + (C.real ? '' : ' (자리표시)')); });
+    document.body.dataset.ready = '1';
+  });
+</script>
+</body>
+</html>
