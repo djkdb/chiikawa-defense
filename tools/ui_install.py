@@ -24,14 +24,14 @@ START, END = "/* ui-kit:defense:start — tools/ui_install.py 가 씀, 손으로
 DIRECT = [(".sheet", "panel_wide", 0.45)]
 MAP = [
     (".card", "panel_wide", 0.32),
-    (".pill", "btn_cream", 0.42),
+    (".pill", "btn_sky", 0.42),
     (".btn", "btn_yellow", 0.5),
     (".btn.pink", "btn_pink", 0.5),
     (".btn.sky", "btn_sky", 0.5),
     ("#summonBtn", "btn_yellow", 0.62),
-    (".up", "btn_cream", 0.38),
-    (".tool", "btn_cream", 0.38),
-    (".lrow", "btn_cream", 0.42),
+    (".up", "btn_sky", 0.38),
+    (".tool", "btn_yellow", 0.38),
+    (".lrow", "btn_sky", 0.42),
     (".diff", "frame_gray", 0.34),
     (".diff[data-i='0']", "frame_yellow", 0.34),
     (".diff[data-i='1']", "frame_sky", 0.34),
@@ -46,6 +46,20 @@ MAP = [
 ICONS = ["icon_clover", "icon_lock", "icon_coin", "icon_book", "icon_star"]
 
 
+def whiten(path):
+    """「크림색 하지 마」 — 종이 패널의 따뜻한 미색 바탕을 깨끗한 흰 종이로. 밝고 채도 낮은 픽셀만 흰색 쪽으로 (선 · 그림자는 그대로)"""
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(Image.open(path).convert("RGBA")).astype(float)
+    rgb = a[..., :3]
+    light = rgb.min(-1)
+    sat = rgb.max(-1) - rgb.min(-1)
+    k = np.clip((light - 200) / 40, 0, 1) * (sat < 40)
+    rgb += (255 - rgb) * k[..., None]
+    a[..., :3] = rgb
+    Image.fromarray(a.round().astype("uint8"), "RGBA").save(path)
+
+
 def main():
     meta = json.loads((KIT / "ui.json").read_text())["parts"]
     DST.mkdir(parents=True, exist_ok=True)
@@ -56,6 +70,8 @@ def main():
             used |= {part + "_down", part + "_off"}
     for p in sorted(used | set(ICONS)):
         shutil.copy2(KIT / f"{p}.png", DST / f"{p}.png")
+        if p.startswith("panel_"):
+            whiten(DST / f"{p}.png")
 
     def v(part):
         T, R, B, L = meta[part]["slice"]

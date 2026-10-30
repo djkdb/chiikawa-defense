@@ -83,6 +83,11 @@
     stun: { gap: 0.2, f() { tone(N(88), 0.08, { type: 'square', vol: 0.04 }); tone(N(81), 0.14, { type: 'triangle', vol: 0.06, at: 0.06 }); } },
     nova: { gap: 0.3, f() { [72, 79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.25, { type: 'triangle', vol: 0.05, at: i * 0.03 })); tone(N(48), 0.4, { type: 'sine', vol: 0.1 }); } },
     myth: { gap: 0.5, f() { [72, 76, 79, 83, 86, 91, 95, 98].forEach((n, i) => tone(N(n), 0.25, { type: i % 2 ? 'triangle' : 'square', vol: 0.045, at: 0.15 + i * 0.07 })); tone(N(48), 0.9, { type: 'triangle', vol: 0.1, at: 0.15 }); tone(N(55), 0.9, { type: 'sine', vol: 0.06, at: 0.15 }); } },
+    // 손맛: 보스 경고(위아래로 오가는 사각파) · 콤보 · 강화(레벨업 아르페지오) · 동전이 칸에 닿음
+    siren: { gap: 1, f() { for (let i = 0; i < 4; i++) tone(N(i % 2 ? 69 : 74), 0.18, { type: 'square', vol: 0.05, at: i * 0.2 }); } },
+    combo: { gap: 0.3, f() { [79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.07, { type: 'square', vol: 0.045, at: i * 0.04 })); } },
+    levelup: { gap: 0.1, f() { [72, 79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.09, { type: 'triangle', vol: 0.07, at: i * 0.045 })); tone(N(96), 0.16, { type: 'square', vol: 0.04, at: 0.24 }); } },
+    coinfly: { gap: 0.07, f() { tone(N(95), 0.04, { type: 'square', vol: 0.025 }); } },
     win: { gap: 1, f() { [72, 76, 79, 84, 79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.18, { type: 'square', vol: 0.06, at: i * 0.12 })); tone(N(48), 1.0, { type: 'triangle', vol: 0.1, at: 0.84 }); } },
     lose: { gap: 1, f() { [67, 64, 60, 55].forEach((n, i) => tone(N(n), 0.26, { type: 'triangle', vol: 0.1, at: i * 0.2 })); } },
   };

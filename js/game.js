@@ -36,7 +36,13 @@
   const PX = ['nearest', 'smooth', 'hybrid'].includes(Q.get('px')) ? Q.get('px') : 'hybrid';
   // 칸 한 변 최대 CSS px — 시트 프레임(약 28px)이 칸(32 도트)에 1:1 로 들어가므로 64 면 ×2. 더 키우면 뭉개집니다
   const TILE_MAX = 64;
-  const view = { an: new Map(), fx: [], texts: [], shake: 0, t: 0, flyGhosts: [], cards: [], bigHit: new Map(), warn: null };
+  const view = { an: new Map(), fx: [], texts: [], shake: 0, t: 0, flyGhosts: [], cards: [], bigHit: new Map(), warn: null,
+    stop: 0, flash: null, combo: { n: 0, at: -9, tx: null } };
+  // ── 손맛 ── 타격 멈칫(규칙 시간을 잠깐 세움) · 화면 번쩍 · 피해 숫자 크기 차등 · 콤보
+  function hitStop(sec) { view.stop = Math.max(view.stop, sec); }
+  function flashScreen(col, a, life) { view.flash = { col, a, t: 0, life: life || 0.18 }; }
+  // 피해가 클수록 숫자를 크게 (10 ≈ 기본, 1만 ≈ 1.5배) — 큰 한 방이 눈에 띄게
+  const dmgSize = (d, base) => Math.min(base * 1.7, base * (0.78 + Math.log10(Math.max(1, d)) * 0.18));
 
   // ── 기록 (이 브라우저에만) ─────────────────────────────────
   function rec() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
@@ -100,7 +106,9 @@
   const slotXY = (i) => ({ x: g.slots[i].x * TILE, y: g.slots[i].y * TILE });
   function text(x, y, str, col, size, o) {
     if (view.texts.length > 46) { if (!(o && (o.coin || o.pop))) return; view.texts.shift(); }
-    view.texts.push(Object.assign({ x, y, str, col, size, t: 0, life: 0.8, vy: -16 }, o || {}));
+    const tx = Object.assign({ x, y, str, col, size, t: 0, life: 0.8, vy: -16 }, o || {});
+    view.texts.push(tx);
+    return tx;
   }
   function parts(x, y, cols, n, sp) {
     for (let i = 0; i < n; i++) {
@@ -162,7 +170,7 @@
           view.fx.push({ type: 'rays', x: p.x, y: p.y, col: '#ffe3f0', t: -0.2, life: 1.8 });
           setTimeout(() => sparks(p.x, p.y, 'myth', 24, 18), 250);
           card(e.slot, e.ch, 4, true, 0.25);
-          view.shake = 0.45;
+          view.shake = 0.45; hitStop(0.25); flashScreen('#ffffff', 0.7, 0.4);
           banner('신화 ' + CH[e.ch].name + ' 탄생!', '「' + T.recipes[e.r].myth.name + '」', 'myth');
           S.play('myth');
           const r = rec(); r.found = found(r); if (!r.found.includes(e.r)) { r.found.push(e.r); saveRec(r); }
@@ -171,7 +179,7 @@
         case 'mythskill': {
           const p = slotXY(e.slot), M = T.recipes[e.r].myth;
           text(p.x, p.y - 24, M.name, '#ffd0e6', 8, { life: 1.1, vy: -12, pop: 1 });
-          if (e.kind === 'nova') { view.fx.push({ type: 'nova', x: BW / 2, y: (ROWS * TILE) / 2, t: 0, life: 0.6 }); view.shake = Math.max(view.shake, 0.2); S.play('nova'); }
+          if (e.kind === 'nova') { view.fx.push({ type: 'nova', x: BW / 2, y: (ROWS * TILE) / 2, t: 0, life: 0.6 }); view.shake = Math.max(view.shake, 0.2); hitStop(0.08); S.play('nova'); }
           else if (e.kind === 'stun') { view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#ffe27a', r0: 6, r1: M.r * TILE, t: 0, life: 0.5, w: 4, fill: 'rgba(255,230,120,.18)' }); S.play('stun'); }
           else S.play('skill');
           break;
@@ -228,7 +236,7 @@
             banner('침묵!', '친구 ' + e.targets.length + '명이 ' + B.t + '초 동안 봉인', 'boss');
             S.play('silence');
           } else if (e.bt === 'summon') {
-            parts(X, Y - 10, ['#fff6e3', '#cfe7ff', '#ffd0dc'], 20, 40); S.play('bsummon');
+            parts(X, Y - 10, ['#ffffff', '#cfe7ff', '#ffd0dc'], 20, 40); S.play('bsummon');
             text(X, Y - 54, '졸개 ' + B.n + '마리!', '#ffffff', 8, { life: 1 });
           } else if (e.bt === 'heal') {
             text(X, Y - 54, '+' + fmt(e.heal), '#9be07a', 10, { life: 1.1, pop: 1 });
@@ -258,6 +266,9 @@
           setTimeout(() => sparks(p.x, p.y, GR[e.g].key, 8 + e.g * 5, 14), 200);
           card(e.slot, e.ch, e.g, true, 0.18);
           S.play('merge');
+          hitStop(e.g >= 3 ? 0.14 : 0.05);
+          flashScreen(GR[e.g].glow, e.g >= 3 ? 0.55 : 0.28, e.g >= 3 ? 0.35 : 0.16);
+          view.shake = Math.max(view.shake, 0.06 + e.g * 0.04);
           if (e.g >= 3) { S.play('legend'); view.shake = 0.35; view.fx.push({ type: 'rays', x: p.x, y: p.y, col: GR[3].color, t: -0.2, life: 1.4 }); banner('전설 ' + CH[e.ch].name + '!', '합성 성공', 'legend'); }
           else if (e.g >= 2) S.play('rare');
           break;
@@ -265,7 +276,7 @@
         case 'move': { const u = g.slots[e.slot].u; if (u) an(u).pop = 0.5; if (e.swap && g.slots[e.from].u) an(g.slots[e.from].u).pop = 0.5; S.play('pick'); break; }
         case 'sell': {
           const p = slotXY(e.slot);
-          parts(p.x, p.y, ['#fff6e3', '#ffe08a', CH[e.ch].color], 10, 26);
+          parts(p.x, p.y, ['#ffffff', '#ffe08a', CH[e.ch].color], 10, 26);
           text(p.x, p.y - 8, '+' + e.coins, '#ffd54a', 9, { coin: true });
           S.play('sell');
           break;
@@ -273,7 +284,10 @@
         case 'upgrade': {
           g.slots.forEach((sl, i) => { if (sl.u && sl.u.g === e.g) { an(sl.u).flash = 0.9; const p = slotXY(i); sparks(p.x, p.y, GR[e.g].key, 3, 8); } });
           toast(GR[e.g].name + ' 강화 ' + e.lv + '단계 — 공격력 +' + Math.round(T.upgrade.dmg * e.lv * 100) + '%');
-          S.play('up');
+          S.play('levelup');
+          flashScreen(GR[e.g].color, 0.22, 0.2);
+          bump($('up' + e.g));
+          g.slots.forEach((sl, i) => { if (sl.u && T.upGroup[sl.u.g] === e.g) { const p = slotXY(i); text(p.x, p.y - 20, 'UP!', GR[sl.u.g].color, 7, { life: 0.7, vy: -22, pop: 1 }); } });
           break;
         }
         case 'fire': {
@@ -310,10 +324,11 @@
           if (HC && e.kind !== 'psn' && e.kind !== 'burn' && e.kind !== 'poison') { const hk = 14 / Math.max(HC.w, HC.h) * (e.crit || e.skill ? 1.4 : 1); view.fx.push({ type: 'hitspr', img: HC, x: X, y: Y + 6, t: 0, life: 0.24, k0: 0.6 * hk, k1: hk }); }
           if (e.skill || e.crit) view.bigHit.set(e.id, 0.22);
           if (e.armor && Math.random() < 0.25) { text(X - 6, Y - 6, '막음', '#d6dae2', 6, { life: 0.5 }); S.play('tink'); }
-          if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', 8, { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); }
+          if ((e.crit || e.skill) && g.enemies.some((m) => m.id === e.id && m.kind === 'boss')) { hitStop(0.035); view.shake = Math.max(view.shake, 0.08); }
+          if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', dmgSize(e.dmg, 8), { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); }
           else if (e.kind === 'psn') { if (Math.random() < 0.6) text(X - 4, Y, fmt(e.dmg), '#9be07a', 6, { life: 0.5 }); break; }
-          else if (e.skill) text(X, Y - 3, fmt(e.dmg), '#fff3b0', 9, { life: 0.8, vy: -20, pop: 1 });
-          else if (e.kind !== 'splash' && e.kind !== 'burn' && e.kind !== 'poison') { text(X + (Math.random() - 0.5) * 6, Y, fmt(e.dmg), '#ffffff', 7); S.play(HIT_SND[e.ch] || 'hit'); }
+          else if (e.skill) text(X, Y - 3, fmt(e.dmg), '#fff3b0', dmgSize(e.dmg, 9), { life: 0.8, vy: -20, pop: 1 });
+          else if (e.kind !== 'splash' && e.kind !== 'burn' && e.kind !== 'poison') { text(X + (Math.random() - 0.5) * 6, Y, fmt(e.dmg), '#ffffff', dmgSize(e.dmg, 7)); S.play(HIT_SND[e.ch] || 'hit'); }
           else text(X + (Math.random() - 0.5) * 8, Y, fmt(e.dmg), e.kind === 'burn' ? '#ffb27a' : e.kind === 'poison' ? '#9be07a' : '#cfe7ff', 6, { life: 0.6 });
           if (e.ch === 'rakko') view.fx.push({ type: 'ring', x: X, y: Y + 10, col: '#ffffff', r0: 2, r1: 9, t: 0, life: 0.2, w: 2 });
           break;
@@ -329,6 +344,19 @@
         case 'kill': {
           txtAt.delete(e.id);
           const X = e.x * TILE, Y = e.y * TILE;
+          const nc = e.kind === 'boss' ? 12 : e.coins >= 5 ? 2 : 1;
+          for (let k = 0; k < nc; k++) {
+            const a2 = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, v = 40 + Math.random() * 40;
+            view.fx.push({ type: 'coin', x: X, y: Y - 8, vx: Math.cos(a2) * v, vy: Math.sin(a2) * v, t: -k * 0.03, life: 0.95 + Math.random() * 0.2 });
+          }
+          // 콤보: 1.5초 안에 이어 잡으면 숫자가 오름 (보이기만 — 규칙엔 영향 없음)
+          const C = view.combo;
+          C.n = view.t - C.at < 1.5 ? C.n + 1 : 1; C.at = view.t;
+          if (C.n >= 5) {
+            if (C.tx) C.tx.life = 0;
+            C.tx = text(BW / 2, 14, C.n + ' 콤보!', C.n >= 30 ? '#ff7aa8' : C.n >= 15 ? '#ffb45a' : '#ffe36a', Math.min(13, 8 + C.n * 0.12), { life: 1.2, vy: -4, pop: 1, coin: false, keep: 1 });
+            if (C.n % 10 === 0) { S.play('combo'); view.shake = Math.max(view.shake, 0.12); }
+          }
           parts(X, Y - 4, e.trait ? [TRAIT_COL[e.trait], '#ffffff', '#fff3b0'] : MON_COLS, e.kind === 'boss' ? 40 : 9, e.kind === 'boss' ? 60 : 30);
           view.bigHit.delete(e.id);
           // 특성 괴물: 시트의 쓰러짐 프레임(분열은 갈라짐)이 잠깐 남았다 사라짐
@@ -339,7 +367,7 @@
           view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
           text(X, Y - 14, '+' + e.coins, '#ffd54a', e.kind === 'boss' ? 11 : 7, { coin: true, life: 0.9, vy: -14 });
           S.play('pop'); S.play('coin');
-          if (e.kind === 'boss') { view.shake = 0.4; view.warn = null; banner(BOSS[e.bt].name + ' 토벌!', '+' + e.coins + ' 동전 · 클로버 +' + T.luck.boss, 'boss'); }
+          if (e.kind === 'boss') { view.shake = 0.5; view.warn = null; hitStop(0.22); flashScreen('#ffffff', 0.6, 0.3); banner(BOSS[e.bt].name + ' 토벌!', '+' + e.coins + ' 동전 · 클로버 +' + T.luck.boss, 'boss'); }
           break;
         }
         case 'wave': {
@@ -348,11 +376,17 @@
           const B = e.bt ? BOSS[e.bt] : null;
           if (e.last) banner('마지막 웨이브!', B.name + ' (' + B.skill + ') — ' + T.finalTime + '초 안에', 'boss');
           else if (e.boss) banner('보스 웨이브 ' + e.n, B.name + ' — 기술 「' + B.skill + '」', 'boss');
+          else if (e.traits.length && e.traits.some((k) => TR[k].from === e.n)) cutin('새 괴물: ' + traitNames(e.traits.filter((k) => TR[k].from === e.n)), TR[e.traits.find((k) => TR[k].from === e.n)].desc, 'wave');
           else banner('웨이브 ' + e.n, (e.traits.length ? traitNames(e.traits) : '') + it);
           S.play('wave');
           break;
         }
-        case 'boss': S.play('boss'); view.shake = 0.3; break;
+        case 'boss': {
+          S.play('boss'); S.play('siren'); view.shake = 0.35;
+          const B = BOSS[e.bt], f = MON.ready ? MON.frame('boss', e.bt, 'front', 0) : null;
+          cutin('경고! 보스 등장', B.name + ' — 「' + B.skill + '」 ' + B.desc, 'boss', f && f.img.src);
+          break;
+        }
         case 'end': setTimeout(() => endScreen(e), e.win ? 600 : 900); S.play(e.win ? 'win' : 'lose'); phase = 'end'; view.warn = null; break;
       }
     }
@@ -592,7 +626,7 @@
     if (e.hp < e.max || e.kind === 'boss') {
       const k = Math.max(0, e.hp / e.max);
       x.fillStyle = e.trait && !e.small ? TRAIT_COL[e.trait] : A.INK; x.fillRect(bx - 1, byy - 1, bw + 2, 4);
-      x.fillStyle = '#fff6e3'; x.fillRect(bx, byy, bw, 2);
+      x.fillStyle = '#ffffff'; x.fillRect(bx, byy, bw, 2);
       x.fillStyle = k > 0.5 ? '#7ddc6a' : k > 0.25 ? '#ffc94a' : '#ff6a6a'; x.fillRect(bx, byy, Math.ceil(bw * k), 2);
     }
   }
@@ -617,6 +651,15 @@
       x.drawImage(img, (-img.width / 2) * k, (-img.height / 2) * k, img.width * k, img.height * k);
     }
     x.restore();
+  }
+  // 동전 칸(윗줄 동전 아이콘)의 판 도트 좌표 — 판 밖이어도 됨(그 방향으로 날아가다 사라짐)
+  let coinTg = null, coinTgAt = -9;
+  function coinTarget() {
+    if (coinTg && view.t - coinTgAt < 0.5) return coinTg;
+    const r = cvs.getBoundingClientRect(), c = $('coinIco').getBoundingClientRect();
+    coinTg = { x: ((c.left + c.width / 2 - r.left) / r.width) * BW, y: ((c.top + c.height / 2 - r.top) / r.height) * BH - PAD };
+    coinTgAt = view.t;
+    return coinTg;
   }
   function drawFx(x, f) {
     const k = Math.max(0, f.t / f.life);
@@ -653,6 +696,12 @@
         x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
         const im = f.img;
         x.drawImage(im.img, f.x - im.w * sc / 2, f.y - im.h * sc / 2, im.w * sc, im.h * sc);
+        break;
+      }
+      case 'coin': {
+        x.globalAlpha = 1; x.imageSmoothingEnabled = false;
+        const sq = 0.6 + 0.4 * Math.abs(Math.cos(f.t * 14));   // 돌며 반짝
+        x.drawImage(A.coin, f.x - 4 * sq, f.y - 4, 8 * sq, 8);
         break;
       }
       case 'corpse': {
@@ -710,7 +759,7 @@
     x.restore();
     x.fillStyle = A.INK; A.roundRect(x, -W / 2 - 3, -H / 2 - 3, W + 6, H + 6, 12); x.fill();
     x.fillStyle = c.g >= 4 ? rainbow(x, -W / 2, -H / 2, W, H, 10, view.t) : gr.color; A.roundRect(x, -W / 2, -H / 2, W, H, 10); x.fill();
-    x.fillStyle = '#fffaf0'; A.roundRect(x, -W / 2 + 4, -H / 2 + 4, W - 8, H - 26, 8); x.fill();
+    x.fillStyle = '#ffffff'; A.roundRect(x, -W / 2 + 4, -H / 2 + 4, W - 8, H - 26, 8); x.fill();
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
     const img = PX === 'hybrid' && !(P.k < 1) ? A.big(P.img, Math.min(6, Math.ceil(s))) : P.img;   // 고해상도 초상은 그대로 줄임
     if (PX === 'nearest') x.imageSmoothingEnabled = false;
@@ -744,7 +793,7 @@
     const w = 110, X = (BW - w) / 2, Y = TILE + 3, B = BOSS[b.bt] || T.bosses[0];
     x.save();
     x.fillStyle = A.INK; A.roundRect(x, X - 3, Y - 2, w + 6, 13, 4); x.fill();
-    x.fillStyle = '#fff6e3'; x.fillRect(X, Y + 5, w, 4);
+    x.fillStyle = '#ffffff'; x.fillRect(X, Y + 5, w, 4);
     x.fillStyle = '#ff6a8a'; x.fillRect(X, Y + 5, Math.ceil(w * Math.max(0, b.hp / b.max)), 4);
     x.font = '6px Galmuri11, sans-serif'; x.fillStyle = '#ffffff'; x.textBaseline = 'top';
     x.fillText(B.name + ' ' + fmt(Math.max(0, b.hp)), X, Y - 1);
@@ -803,6 +852,10 @@
     drawBossBar(ctx);
     for (const c of view.cards) drawCard(ctx, c);
     drawTexts(ctx);
+    if (view.flash) {
+      const k = view.flash.t / view.flash.life;
+      ctx.save(); ctx.globalAlpha = view.flash.a * (1 - k); ctx.fillStyle = view.flash.col; ctx.fillRect(0, -PAD, BW, BH); ctx.restore();
+    }
   }
 
   // ── 시간 ──────────────────────────────────────────────────
@@ -812,7 +865,8 @@
     const dt = Math.min(0.1, (now - (lastT || now)) / 1000);
     lastT = now;
     view.t += dt;
-    if (g && phase === 'play') {
+    if (view.stop > 0) view.stop -= dt;
+    else if (g && phase === 'play') {
       acc += dt * speeds[spd];
       let n = 0;
       while (acc >= STEP && n < 60) { g.step(STEP); acc -= STEP; n++; }
@@ -843,11 +897,20 @@
     for (const f of view.fx) {
       f.t += dt;
       if (f.type === 'part' || f.type === 'spark') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 70 * dt; f.vx *= 0.96; }
+      else if (f.type === 'coin' && f.t > 0) {
+        if (f.t < 0.32) { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 160 * dt; }
+        else {   // 동전 칸(윗줄)을 향해 빨려 감
+          const tg = coinTarget(), dx = tg.x - f.x, dy = tg.y - f.y, l = Math.hypot(dx, dy) || 1, sp = 260 + (f.t - 0.32) * 700;
+          if (l < sp * dt + 4) { f.t = f.life; if (!f.done) { f.done = 1; bump($('coinIco').parentNode); S.play('coinfly'); } }
+          else { f.x += (dx / l) * sp * dt; f.y += (dy / l) * sp * dt; }
+        }
+      }
     }
     view.fx = view.fx.filter((f) => f.t < f.life);
     for (const tx of view.texts) { if (tx.delay > 0) { tx.delay -= dt; tx.t = -1; continue; } tx.t = Math.max(0, tx.t) + dt; tx.y += tx.vy * dt; tx.vy *= 0.92; }
     view.texts = view.texts.filter((tx) => tx.t < tx.life);
     for (const f of view.flyGhosts) f.t += dt;
+    if (view.flash) { view.flash.t += dt; if (view.flash.t >= view.flash.life) view.flash = null; }
     for (const [id, v] of view.bigHit) { if (v - dt <= 0) view.bigHit.delete(id); else view.bigHit.set(id, v - dt); }
     view.flyGhosts = view.flyGhosts.filter((f) => f.t < f.life);
   }
@@ -971,6 +1034,19 @@
     clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 1700);
   }
   let bannerAt = -9;
+  // 큰 글씨 컷인 (보스 등장 = 경고 띠 · 새 특성 = 짧은 띠). 판 위 DOM 이라 글자가 또렷함
+  function cutin(big, small, kind, img) {
+    const el = $('cutin');
+    el.className = ''; void el.offsetWidth;
+    el.innerHTML = '';
+    if (img) { const im = document.createElement('img'); im.src = img; im.alt = ''; el.appendChild(im); }
+    const d = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = big; d.appendChild(b);
+    if (small) { const sm = document.createElement('small'); sm.textContent = small; d.appendChild(sm); }
+    el.appendChild(d);
+    el.className = 'go ' + (kind || 'wave');
+  }
+  function bump(el) { if (!el) return; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   function banner(big, small, cls) {
     bannerAt = view.t;
     const el = $('banner');

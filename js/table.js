@@ -88,7 +88,7 @@
 
     // 등급 — dmg·spd 는 친구 기본값에 곱함. stars 는 칸에 그리는 별 수
     grades: [
-      { key: 'common', name: '일반', color: '#b9ab9c', glow: '#efe6db', dmg: 1,   spd: 1,    stars: 1 },
+      { key: 'common', name: '일반', color: '#b9ab9c', glow: '#eef3f7', dmg: 1,   spd: 1,    stars: 1 },
       { key: 'rare',   name: '희귀', color: '#5aa7ee', glow: '#cfe7ff', dmg: 3.2, spd: 1.08, stars: 2 },
       { key: 'epic',   name: '영웅', color: '#ae78ee', glow: '#ead9ff', dmg: 10,  spd: 1.16, stars: 3 },
       { key: 'legend', name: '전설', color: '#ffb428', glow: '#fff0b8', dmg: 32,  spd: 1.25, stars: 4 },
