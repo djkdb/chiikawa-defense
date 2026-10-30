@@ -92,7 +92,24 @@
     lose: { gap: 1, f() { [67, 64, 60, 55].forEach((n, i) => tone(N(n), 0.26, { type: 'triangle', vol: 0.1, at: i * 0.2 })); } },
   };
 
+  // ── 음악: 조용한 들판 노래 (삼각파 선율 + 사인파 베이스, 32 칸 되풀이). 효과음과 따로 켜고 끔.
+  // 브라우저가 소리를 열어 준 뒤(첫 입력 · unlock)에만 울림 — 그 전엔 AudioContext 를 만들지 않음
+  const MEL = [72, 0, 76, 0, 79, 0, 76, 74, 72, 0, 74, 76, 74, 0, 67, 0, 69, 0, 72, 0, 76, 0, 74, 72, 71, 0, 72, 74, 72, 0, 0, 0];
+  const BASS = [48, 55, 52, 55, 45, 52, 48, 52, 41, 48, 45, 48, 43, 50, 47, 50];
+  let mOn = false, mTimer = null, mStep = 0;
+  function mTick() {
+    if (!mOn || !ac || ac.state !== 'running' || document.hidden) return;
+    const n = MEL[mStep % MEL.length];
+    if (n) tone(N(n), 0.24, { type: 'triangle', vol: 0.02 });
+    if (mStep % 2 === 0) tone(N(BASS[(mStep / 2) % BASS.length]), 0.3, { type: 'sine', vol: 0.03 });
+    mStep++;
+  }
   CD.sfx = {
+    music(v) {
+      mOn = !!v;
+      if (mOn && !mTimer) mTimer = setInterval(mTick, 200);
+      if (!mOn && mTimer) { clearInterval(mTimer); mTimer = null; }
+    },
     play(name) {
       if (!on) return;
       const s = SOUNDS[name]; if (!s) return;
@@ -102,9 +119,9 @@
       last[name] = now;
       s.f();
     },
-    unlock() { if (on) ctx(); },
+    unlock() { if (on || mOn) ctx(); },
     get on() { return on; },
-    set on(v) { on = !!v; if (on) ctx(); },
+    set on(v) { on = !!v; if (on && ac) ctx(); },   // 첫 입력 전엔 AudioContext 를 만들지 않음 (브라우저 경고)
     names: Object.keys(SOUNDS),
   };
 })();

@@ -31,7 +31,10 @@ body{
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
 button:focus-visible{outline:3px dashed #2f7ad8;outline-offset:3px}
 
-#app{height:100dvh;display:flex;flex-direction:column;align-items:center;padding:8px 8px 4px;gap:6px}
+/* 노치 · 홈 막대 밑으로 들어가지 않게 (viewport-fit=cover) */
+#app{height:100dvh;display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
+button{touch-action:manipulation}
 
 /* 윗줄 */
 .hud{width:100%;max-width:980px;display:flex;align-items:center;gap:6px}
@@ -47,7 +50,8 @@ button:focus-visible{outline:3px dashed #2f7ad8;outline-offset:3px}
 .load span{font-size:12px;white-space:nowrap}
 .coins b{font:16px var(--f-b);min-width:3ch}
 .coins canvas{width:22px;height:22px;image-rendering:pixelated}
-.chip{min-width:40px;justify-content:center;font-size:13px}
+.chip{min-width:44px;justify-content:center;font-size:13px}
+.hud .pill{min-height:44px}
 .chip[aria-pressed="false"]{color:var(--mute);text-decoration:line-through}
 
 /* 무대: 판 + 옆 판넬 (폰에선 위아래) */
@@ -124,7 +128,7 @@ button:focus-visible{outline:3px dashed #2f7ad8;outline-offset:3px}
 .codex canvas{width:48px;height:48px;flex:none}
 .codex b{font:14px var(--f-b);display:block}
 .codex span{font-size:12px;color:var(--mute);line-height:1.35;display:block}
-@media (max-width:760px){.codex{grid-template-columns:1fr}}
+body[data-lay="phone"] .codex{grid-template-columns:1fr}
 table.grades{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
 table.grades th,table.grades td{border:2px solid var(--ink);padding:3px 4px}
 table.grades th{background:var(--sky-bg-2)}
@@ -209,7 +213,7 @@ body.bg-night{background:linear-gradient(rgba(20,26,60,.25),rgba(20,26,60,.25)),
 body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
 .fan{background:var(--ui-fan-bg,transparent);border-radius:8px}
 .cover{height:150px;margin:-6px -6px 6px;border-radius:14px;border:var(--ui-bw) solid var(--ui-line);background:url(assets/bg/cover.webp) center 54%/cover}
-@media (max-width:760px){.cover{height:110px}}
+body[data-lay="phone"] .cover{height:110px}
 .ic{display:inline-block;height:1.1em;width:auto;vertical-align:-.15em}
 /* 컷인 · 손맛 (보스 등장 경고 띠 · 새 특성 띠 · 동전 칸 튕김) */
 #cutin{position:absolute;left:-4%;right:-4%;top:34%;display:flex;align-items:center;gap:8px;padding:8px 6%;pointer-events:none;opacity:0;transform:skewY(-4deg)}
@@ -222,7 +226,7 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
 @keyframes cutin{0%{opacity:0;transform:skewY(-4deg) translateX(-60%)}12%{opacity:1;transform:skewY(-4deg) translateX(0)}82%{opacity:1;transform:skewY(-4deg) translateX(0)}100%{opacity:0;transform:skewY(-4deg) translateX(40%)}}
 .bump{animation:bump .28s ease-out}
 @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
-@media (max-width:760px){#cutin b{font-size:19px}#cutin img{height:54px}}
+body[data-lay="phone"] #cutin b{font-size:19px}body[data-lay="phone"] #cutin img{height:54px}
 @media (prefers-reduced-motion:reduce){#cutin.go,.bump{animation:none}}
 /* ui-kit:defense:start — tools/ui_install.py 가 씀, 손으로 고치지 않음 */
 .card,.pill,.btn,.btn.pink,.btn.sky,#summonBtn,.up,.tool,.lrow,.diff,.diff[data-i='0'],.diff[data-i='1'],.diff[data-i='2'],.diff[data-i='3'],.rcard,.rcard.gam,.recipe,.recipe.ready,.rules{position:relative;isolation:isolate;background:none!important;border-color:transparent!important;box-shadow:none!important}
@@ -264,16 +268,6 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
 .rules{--src:url(assets/ui/dash_frame.png);--sl:73 85 77 87;--t:73px;--r:85px;--b:77px;--l:87px;--uk:0.22}
 .sheet{--src:url(assets/ui/panel_wide.png);--sl:46 46 29 49;--t:46px;--r:46px;--b:29px;--l:49px;--uk:0.45;background:none!important;box-shadow:none!important;border-style:solid;border-color:transparent;border-image-source:var(--src);border-image-slice:var(--sl) fill;border-image-repeat:stretch;border-width:calc(var(--t)*var(--uk)) calc(var(--r)*var(--uk)) calc(var(--b)*var(--uk)) calc(var(--l)*var(--uk));padding:2px 6px 4px}
 /* ui-kit:defense:end */
-@media (max-width:760px){
-  .diffs{grid-template-columns:1fr 1fr}
-  .tool{min-height:40px;padding:2px 6px}
-  .tool>b{font-size:11px}
-  .wave .next{max-width:150px}
-  .cards3{gap:5px}
-  .rcard{padding:8px 4px;min-height:120px}
-  .rcard b{font-size:13px}
-  .rcard span{font-size:11px}
-}
 
 @keyframes banner{0%{opacity:0;transform:scale(.6)}12%{opacity:1;transform:scale(1.08)}22%{transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
@@ -281,33 +275,91 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .parade canvas:nth-child(2n){animation-delay:-.35s}.parade canvas:nth-child(3n){animation-delay:-.7s}
 
-/* 폰 (세로) */
-@media (max-width:760px){
-  #app{padding:6px 6px 2px;gap:5px}
-  .hud{gap:4px;flex-wrap:wrap}
-  .load{order:9;flex-basis:100%;min-height:26px}
-  .wave{flex:1}
-  .pill{padding:2px 6px;min-height:34px;border-width:2px;border-radius:10px}
-  .wave b{font-size:13px}
-  .wave small{font-size:10px}
-  .load span{font-size:11px}
-  .chip{min-width:34px;font-size:12px}
-  .stage{flex-direction:column;align-items:center;gap:6px}
-  .boardWrap{border-width:3px;border-radius:14px}
-  .panel{width:100%;gap:6px}
-  .card{padding:5px 8px;border-radius:12px}
-  /* 고른 친구 설명이 길어져도 판넬 높이가 그대로여야 판·버튼이 밀리지 않음 (fit() 이 처음 높이로 판 크기를 정함) */
-  .info{min-height:0;height:84px;overflow:hidden}
-  .info .ds{font-size:11px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-  .info .nm{font-size:14px}
-  .info .por{width:44px;height:44px}
-  .parade canvas{width:40px;height:40px}
-  #summonBtn{min-height:70px}
-  .side-links{display:none}
-  .fan{font-size:10px}
-}
-/* 데스크톱: 판이 ×2 상한이라 화면이 남으므로 가운데로 */
-@media (min-width:761px){ #app{justify-content:center} .stage{flex:none} }
+/* ── 기기 배치 ── body[data-lay] 는 fit() 이 정함 (UA 안 씀): phone(<600) · tab(600~839 또는 세로로 긴 태블릿) · wide(가로 태블릿 · 노트북)
+   phone: 판 위 · 버튼은 아래 엄지 영역 / tab: 큰 판 + 아래 두 단 판넬 / wide: 판 + 옆 판넬, 세로 768 에서도 스크롤 없이 */
+.stage{flex:1;min-height:0}
+body[data-lay="wide"] #app{justify-content:center}
+body[data-lay="wide"] .stage{flex:none;align-items:stretch}
+body[data-lay="wide"] .panel{width:340px;gap:10px}
+body[data-lay="wide"] .info{min-height:96px}
+body[data-lay="wide"] .up,body[data-lay="wide"] .tool{min-height:48px}
+body[data-lay="phone"] #app,body[data-lay="tab"] #app{gap:5px}
+body[data-lay="phone"] .hud,body[data-lay="tab"] .hud{gap:4px;flex-wrap:wrap}
+body[data-lay="phone"] .load,body[data-lay="tab"] .load{order:9;flex-basis:100%;min-height:28px}
+body[data-lay="phone"] .wave,body[data-lay="tab"] .wave{flex:1}
+body[data-lay="phone"] .stage,body[data-lay="tab"] .stage{flex-direction:column;align-items:center;gap:6px}
+body[data-lay="phone"] .panel{width:100%;gap:6px}
+body[data-lay="phone"] .pill{padding:2px 6px;min-height:44px;border-width:2px;border-radius:10px}
+body[data-lay="phone"] .wave b{font-size:13px}
+body[data-lay="phone"] .wave small{font-size:10px}
+body[data-lay="phone"] .load span{font-size:11px}
+body[data-lay="phone"] .chip{min-width:44px;font-size:12px}
+body[data-lay="phone"] .boardWrap{border-width:3px;border-radius:14px}
+body[data-lay="phone"] .card{padding:5px 8px;border-radius:12px}
+/* 고른 친구 설명이 길어져도 판넬 높이가 그대로여야 판·버튼이 밀리지 않음 (fit() 이 처음 높이로 판 크기를 정함) */
+body[data-lay="phone"] .info{min-height:0;height:62px;overflow:hidden}
+body[data-lay="phone"] .info .ds{font-size:11px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+body[data-lay="phone"] .info .hint{font-size:11px;line-height:1.35}
+body[data-lay="phone"] .info .nm{font-size:14px}
+body[data-lay="phone"] .info .por{width:40px;height:40px}
+body[data-lay="phone"] .parade canvas{width:40px;height:40px}
+body[data-lay="phone"] #summonBtn{min-height:96px}
+body[data-lay="phone"] .up{min-height:45px}
+body[data-lay="phone"] .tool{min-height:46px;padding:2px 6px}
+body[data-lay="phone"] .tool>b{font-size:11px}
+body[data-lay="phone"] .side-links{display:none}
+body[data-lay="phone"] .fan{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+body[data-lay="phone"] .diffs{grid-template-columns:1fr 1fr}
+body[data-lay="phone"] .wave .next{max-width:150px}
+body[data-lay="phone"] .cards3{gap:5px}
+body[data-lay="phone"] .rcard{padding:8px 4px;min-height:120px}
+body[data-lay="phone"] .rcard b{font-size:13px}
+body[data-lay="phone"] .rcard span{font-size:11px}
+/* 태블릿 세로: 판넬을 두 단(왼쪽 = 설명 · 도구 / 오른쪽 = 소환 · 강화)으로 — 폰 화면을 늘린 것처럼 보이지 않게 */
+body[data-lay="tab"] .panel{width:100%;max-width:760px;display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"info ctrl" "tools ctrl" "links ctrl";gap:8px}
+body[data-lay="tab"] .info{grid-area:info;min-height:84px}
+body[data-lay="tab"] .ctrl{grid-area:ctrl}
+body[data-lay="tab"] .tools3{grid-area:tools}
+body[data-lay="tab"] .side-links{grid-area:links}
+body[data-lay="tab"] #summonBtn{min-height:120px;font-size:24px}
+body[data-lay="tab"] .up,body[data-lay="tab"] .tool{min-height:54px}
+body[data-lay="tab"] .hud,body[data-lay="tab"] .stage{max-width:760px}
+body[data-lay="tab"] .pill{min-height:46px}
+/* 단축키 표시 — 넓은 배치 + 마우스가 있을 때만 */
+kbd{display:none;font:10px var(--f);border:1.5px solid var(--ink);border-bottom-width:3px;border-radius:5px;padding:0 4px;background:#fff;color:var(--ink);margin-left:4px;line-height:1.3}
+@media (hover:hover) and (pointer:fine){ body[data-lay="wide"] kbd{display:inline-block} }
+/* 눌림 · 호버 */
+.pressed{transform:translateY(2px) scale(.97)!important;filter:brightness(.96)}
+@media (hover:hover){ .btn:hover:not([disabled]),.tool:hover:not([disabled]),.up:hover:not([disabled]),button.pill:hover{filter:brightness(1.06)} .diff:hover:not([disabled]),.rcard:hover{transform:translateY(-2px)} }
+/* 화면 전환: 덮개가 짧게 페이드 · 종이가 톡 */
+.ov:not([hidden]){animation:ovIn .16s ease-out}
+.ov:not([hidden]) .sheet{animation:sheetIn .2s cubic-bezier(.2,1.3,.4,1)}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetIn{from{transform:scale(.92) translateY(10px)}to{transform:none}}
+.ov{padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+/* 로딩 */
+#loading{position:fixed;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--sky-bg);transition:opacity .3s}
+#loading.done{opacity:0;pointer-events:none}
+#loading b{font:22px var(--f-b)}
+#loading .lbar{width:min(280px,70vw);height:14px;border:3px solid var(--ink);border-radius:9px;background:#fff;overflow:hidden}
+#loading .lbar i{display:block;height:100%;width:0;background:#9dd67f;transition:width .2s}
+#loading p{margin:0;font-size:13px;color:var(--ink);max-width:80vw;text-align:center}
+/* 처음 1회 안내 (판 위 말풍선 — 판 입력은 막지 않음) */
+#coach{position:absolute;left:8px;right:8px;top:8px;z-index:3;display:flex;gap:8px;align-items:center;padding:8px 10px;background:#fff;border:3px solid var(--ink);border-radius:12px;box-shadow:var(--ui-shadow);font-size:13px;line-height:1.4;pointer-events:none}
+#coach b{color:#2f7ad8}
+#coach button{pointer-events:auto;flex:none;min-height:44px;min-width:64px;font-size:12px}
+.coach-on{position:relative;z-index:1;animation:coachGlow 1s ease-in-out infinite}
+@keyframes coachGlow{0%,100%{box-shadow:0 0 0 0 rgba(47,122,216,.0)}50%{box-shadow:0 0 0 5px rgba(47,122,216,.55)}}
+/* 설정 */
+.set{display:flex;flex-direction:column;gap:6px;margin:10px 0;text-align:left}
+.set label{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:4px 12px;border:3px solid var(--ink);border-radius:12px;background:#fff;font-size:14px}
+.set input[type=checkbox]{width:24px;height:24px;accent-color:#2f7ad8}
+.set select{font:inherit;min-height:36px;border:2px solid var(--ink);border-radius:8px;background:#fff}
+#toast{pointer-events:auto;cursor:pointer}
+/* 움직임 줄이기 (설정 · OS 설정) */
+body.calm .parade canvas,body.calm #summonBtn.pulse,body.calm .load.hot,body.calm .tool.pulse,body.calm .coach-on{animation:none!important}
+body.calm #cutin.go{animation:cutinCalm 2s linear}
+@keyframes cutinCalm{0%,100%{opacity:0}10%,85%{opacity:1}}
 @media (prefers-reduced-motion:reduce){ .parade canvas,#summonBtn.pulse,.load.hot{animation:none} }
 </style>
 </head>
@@ -317,9 +369,9 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
     <div class="pill wave"><b id="waveTxt">웨이브 0/20</b><span class="wcol"><small id="waveT"></small><small id="nextTxt" class="next"></small></span></div>
     <div class="pill load" id="loadBox"><div class="bar"><i id="loadBar"></i></div><span id="loadTxt">0/40</span></div>
     <div class="pill coins" title="동전 — 괴물을 잡으면 받아요"><canvas id="coinIco" width="12" height="12"></canvas><b id="coinTxt">0</b></div>
-    <button class="pill chip" id="spdBtn" aria-label="빠르기">×1</button>
-    <button class="pill chip" id="sndBtn" aria-pressed="true" aria-label="소리 켜고 끄기">소리</button>
-    <button class="pill chip" id="pauseBtn" aria-label="멈춤">멈춤</button>
+    <button class="pill chip" id="spdBtn" aria-label="빠르기">×1<kbd>F</kbd></button>
+    <button class="pill chip" id="setBtn" aria-label="설정 (소리 · 음악 · 진동 · 움직임)">설정</button>
+    <button class="pill chip" id="pauseBtn" aria-label="멈춤">멈춤<kbd>P</kbd></button>
   </header>
 
   <main class="stage">
@@ -327,18 +379,19 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
       <canvas id="board" aria-label="게임 판 — 친구를 눌러 고르고, 같은 친구·같은 등급끼리 끌어다 놓으면 합성"></canvas>
       <div id="banner"></div>
       <div id="cutin" aria-live="polite"></div>
-      <div id="toast"></div>
+      <div id="toast" role="status"></div>
+      <div id="coach" hidden></div>
     </div>
     <aside class="panel">
       <div class="card info" id="info"></div>
       <div class="ctrl">
-        <button class="btn" id="summonBtn"><span>소환</span><span class="cost"><canvas width="12" height="12"></canvas><b id="costTxt">20</b></span></button>
+        <button class="btn" id="summonBtn"><span>소환<kbd>Space</kbd></span><span class="cost"><canvas width="12" height="12"></canvas><b id="costTxt">20</b></span></button>
         <div class="ups" id="ups"></div>
       </div>
       <div class="tools3">
-        <button class="tool" id="oddsBtn" aria-label="소환 확률 올리기"><b>확률 <i id="oddsLv">Lv0</i></b><span class="obar" id="oddsBar"></span><span class="tc"><canvas width="12" height="12"></canvas><b id="oddsCost">40</b></span></button>
-        <button class="tool" id="luckBtn" aria-label="행운 소환 (클로버)"><b>행운 소환</b><span class="tc"><img class="ic" src="assets/ui/icon_clover.png" alt="클로버"> <b id="cloverTxt">0</b></span></button>
-        <button class="tool" id="mythBtn" aria-label="신화 레시피"><b>신화 레시피</b><span class="tc">전설3→신화<i class="dot" id="mythDot" hidden>!</i></span></button>
+        <button class="tool" id="oddsBtn" aria-label="소환 확률 올리기"><b>확률 <i id="oddsLv">Lv0</i><kbd>Q</kbd></b><span class="obar" id="oddsBar"></span><span class="tc"><canvas width="12" height="12"></canvas><b id="oddsCost">40</b></span></button>
+        <button class="tool" id="luckBtn" aria-label="행운 소환 (클로버)"><b>행운 소환<kbd>W</kbd></b><span class="tc"><img class="ic" src="assets/ui/icon_clover.png" alt="클로버"> <b id="cloverTxt">0</b></span></button>
+        <button class="tool" id="mythBtn" aria-label="신화 레시피"><b>신화 레시피<kbd>E</kbd></b><span class="tc">전설3→신화<i class="dot" id="mythDot" hidden>!</i></span></button>
       </div>
       <div class="side-links"><button class="btn sky small" id="codexBtn2">도감 · 규칙</button></div>
     </aside>
@@ -347,6 +400,7 @@ body.bg-night .fan{color:#e8e2ff;text-shadow:0 1px 2px #000}
 </div>
 
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div id="loading" role="status"><b>들판으로 가는 중…</b><div class="lbar"><i id="loadFill"></i></div><p id="loadTip">팁: 같은 친구 · 같은 등급 둘을 겹치면 한 등급 위로!</p></div>
 
 <script src="js/table.js"></script>
 <script src="assets/chars/chars.js"></script>

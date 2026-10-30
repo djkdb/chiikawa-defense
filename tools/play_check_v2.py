@@ -323,11 +323,88 @@ def run_device(pw, base, name, viewport, mobile, speed, seed):
     return out
 
 
+# 기기 크기 6 — (이름, 뷰포트, 터치, 기대 배치)
+SIZES = [
+    ("phone390", {"width": 390, "height": 844}, True, "phone"),
+    ("phone360", {"width": 360, "height": 740}, True, "phone"),
+    ("ipad_p", {"width": 820, "height": 1180}, True, "tab"),
+    ("ipad_l", {"width": 1180, "height": 820}, True, "wide"),
+    ("nb1366", {"width": 1366, "height": 768}, False, "wide"),
+    ("nb1440", {"width": 1440, "height": 900}, False, "wide"),
+]
+MAIN_BTNS = ["#summonBtn", "#up0", "#up1", "#up2", "#up3", "#oddsBtn", "#luckBtn", "#mythBtn", "#spdBtn", "#setBtn", "#pauseBtn"]
+
+
+def layout_pass(pw, base, name, vp, touch, want):
+    """한 크기에서: 로딩 → 시작 화면 → 판(괴물 · 보스) → 설정 → 멈춤. 스크롤 · 겹침 · 버튼 크기 · 판이 화면 안인지 잼."""
+    b = pw.chromium.launch()
+    ctx = b.new_context(viewport=vp, device_scale_factor=2 if touch else 1, is_mobile=touch and vp["width"] < 600, has_touch=touch)
+    pg = ctx.new_page()
+    cdp = ctx.new_cdp_session(pg) if touch else None
+    D = Dev(pg, "L_" + name, touch, cdp)
+    pg.goto(f"{base}?seed=9&speed=2")
+    D.pg.wait_for_timeout(60)
+    D.shot("loading")
+    pg.wait_for_selector("#startBtn")
+    pg.wait_for_timeout(800)
+    D.shot("title")
+    D.press("#startBtn")
+    pg.wait_for_timeout(400)
+    for _ in range(6):
+        D.press("#summonBtn")
+    pg.evaluate("CD.test.game().cap = 999; CD.test.jumpWave(10); CD.test.spawnTrait('fast',2); CD.test.spawnTrait('armor',1); CD.test.spawnTrait('regen',1); CD.test.spawnTrait('split',1); CD.test.spawnTrait('revive',1); CD.test.spawnBoss('shuffle', 3)")
+    pg.wait_for_timeout(2600)
+    D.shot("play")
+    m = pg.evaluate("""(sel) => {
+      const vw = innerWidth, vh = innerHeight, r = (q) => { const e = document.querySelector(q); const b = e.getBoundingClientRect(); return {x: b.left, y: b.top, w: b.width, h: b.height, r: b.right, b: b.bottom}; };
+      const board = r('#board'), panel = r('.panel');
+      const over = !(panel.r <= board.x || panel.x >= board.r || panel.b <= board.y || panel.y >= board.b);
+      const small = sel.map((q) => [q, r(q)]).filter(([q, b]) => b.w < 44 || b.h < 44).map(([q, b]) => q + ' ' + Math.round(b.w) + 'x' + Math.round(b.h));
+      const off = sel.map((q) => [q, r(q)]).filter(([q, b]) => b.y < 0 || b.b > vh + 1 || b.x < 0 || b.r > vw + 1).map(([q]) => q);
+      return {lay: document.body.dataset.lay, scrollW: document.scrollingElement.scrollWidth, scrollH: document.scrollingElement.scrollHeight, vw, vh,
+              board, boardIn: board.y >= 0 && board.b <= vh + 1 && board.x >= 0 && board.r <= vw + 1, panelOverBoard: over, small, off, tile: board.w / 6};
+    }""", MAIN_BTNS)
+    D.press("#setBtn")
+    pg.wait_for_timeout(300)
+    D.shot("settings")
+    D.press("#setDone")
+    pg.wait_for_timeout(250)
+    D.shot("pause")
+    D.press("#resumeBtn")
+    b.close()
+    m.update({"name": name, "want": want, "errors": D.errors, "shots": {k: str(v) for k, v in D.shots.items()}})
+    return m
+
+
 def font(n):
     for p in ("/usr/local/share/fonts/zun/PretendardVariable.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"):
         if Path(p).exists():
             return ImageFont.truetype(p, n)
     return ImageFont.load_default()
+
+
+def board_layout(lays):
+    """기기 6 크기를 한 판에: 줄마다 한 크기(시작 · 판 · 설정 · 멈춤)."""
+    H = 520
+    f = font(24)
+    rows = []
+    for m in lays:
+        ims = [(f"{m['name']} {m['vw']}x{m['vh']} · {k}", Image.open(m["shots"][k]).convert("RGB")) for k in ("loading", "title", "play", "settings", "pause") if k in m["shots"]]
+        rows.append([(lab, im.resize((max(1, int(im.width * H / im.height)), H), Image.LANCZOS)) for lab, im in ims])
+    W = max(sum(im.width for _, im in r) + 16 * (len(r) + 1) for r in rows)
+    out = Image.new("RGB", (W, len(rows) * (H + 50) + 16), "#dff0ff")
+    dr = ImageDraw.Draw(out)
+    y = 8
+    for r in rows:
+        x = 16
+        for lab, im in r:
+            dr.text((x, y + 4), lab, fill="#4a3530", font=f)
+            out.paste(im, (x, y + 40))
+            x += im.width + 16
+        y += H + 50
+    path = OUT / "board_layout.png"
+    out.save(path)
+    return path
 
 
 def board(report):
@@ -367,6 +444,7 @@ def main():
     ap.add_argument("--only", choices=["desk", "phone"])
     ap.add_argument("--speed", type=float, default=8)
     ap.add_argument("--seed", type=int, default=21)
+    ap.add_argument("--layout-only", action="store_true", help="기기 6 크기 배치만 (판 끝까지 하기는 건너뜀)")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     for p in OUT.glob("*.png"):
@@ -378,15 +456,32 @@ def main():
     report = []
     try:
         with sync_playwright() as pw:
-            if a.only in (None, "desk"):
+            lays = [layout_pass(pw, base, n, vp, t, w) for n, vp, t, w in SIZES]
+            if not a.layout_only and a.only in (None, "desk"):
                 report.append(run_device(pw, base, "desk", {"width": 1440, "height": 900}, False, a.speed, a.seed))
-            if a.only in (None, "phone"):
+            if not a.layout_only and a.only in (None, "phone"):
                 report.append(run_device(pw, base, "phone", {"width": 390, "height": 844}, True, a.speed, a.seed + 1))
     finally:
         srv.terminate()
-    (OUT / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
-    path = board(report)
+    (OUT / "report.json").write_text(json.dumps({"play": report, "layout": lays}, ensure_ascii=False, indent=1))
+    path = board(report) if report else None
+    lpath = board_layout(lays)
     bad = []
+    for m in lays:
+        n = m["name"]
+        print(n, f"{m['vw']}x{m['vh']}", "배치", m["lay"], "· 칸", round(m["tile"]), "px · 판", round(m["board"]["w"]), "x", round(m["board"]["h"]), flush=True)
+        if m["lay"] != m["want"]:
+            bad.append(f"{n}: 배치 {m['lay']} (기대 {m['want']})")
+        if m["scrollW"] > m["vw"] + 1 or m["scrollH"] > m["vh"] + 1:
+            bad.append(f"{n}: 스크롤 생김 {m['scrollW']}x{m['scrollH']}")
+        if not m["boardIn"]:
+            bad.append(f"{n}: 판이 화면 밖으로 {m['board']}")
+        if m["panelOverBoard"]:
+            bad.append(f"{n}: 판넬이 판을 덮음")
+        if m["small"]:
+            bad.append(f"{n}: 44px 안 되는 버튼 {m['small']}")
+        if m["off"]:
+            bad.append(f"{n}: 화면 밖 버튼 {m['off']}")
     for d in report:
         n = d["device"]
         e, sn = d["easy"], d["seen"]
@@ -410,8 +505,8 @@ def main():
             bad.append(f"{n}: 신화 레시피 실패 {m}")
         if d["hell"]["over"] != "lose" or d["hell"]["diff"] != 3:
             bad.append(f"{n}: 지옥 패배 판 이상 {d['hell']}")
-    errs = [f"{d['device']}: {e}" for d in report for e in d["errors"]]
-    print("판:", path)
+    errs = [f"{d['device']}: {e}" for d in report for e in d["errors"]] + [f"{m['name']}: {e}" for m in lays for e in m["errors"]]
+    print("판:", path, "· 기기 배치 판:", lpath)
     print("기대와 다른 것:", bad or "없음")
     print("콘솔 오류:", errs or "0")
     sys.exit(1 if bad or errs else 0)

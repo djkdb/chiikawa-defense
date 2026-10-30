@@ -35,12 +35,25 @@
   // 캐릭터 PNG 를 키우는 방식 — hybrid(정수배 nearest 로 키운 뒤 부드럽게 맞춤) · nearest · smooth. 확인용 ?px=
   const PX = ['nearest', 'smooth', 'hybrid'].includes(Q.get('px')) ? Q.get('px') : 'hybrid';
   // 칸 한 변 최대 CSS px — 시트 프레임(약 28px)이 칸(32 도트)에 1:1 로 들어가므로 64 면 ×2. 더 키우면 뭉개집니다
-  const TILE_MAX = 64;
+  // 칸 한 변 최대 CSS px — 태블릿 · 노트북에서 판이 작아 보이지 않게 크게 (시트 그림은 부드럽게 키워 그림)
+  const TILE_MAX = 104;
   const view = { an: new Map(), fx: [], texts: [], shake: 0, t: 0, flyGhosts: [], cards: [], bigHit: new Map(), warn: null,
     stop: 0, flash: null, combo: { n: 0, at: -9, tx: null } };
   // ── 손맛 ── 타격 멈칫(규칙 시간을 잠깐 세움) · 화면 번쩍 · 피해 숫자 크기 차등 · 콤보
   function hitStop(sec) { view.stop = Math.max(view.stop, sec); }
-  function flashScreen(col, a, life) { view.flash = { col, a, t: 0, life: life || 0.18 }; }
+  function flashScreen(col, a, life) { if (!calm()) view.flash = { col, a, t: 0, life: life || 0.18 }; }
+  // ── 설정 (이 브라우저에만): 효과음 · 음악 · 진동 · 움직임 줄이기 · 기본 빠르기 ──
+  const SET0 = { sfx: true, music: true, vib: true, calm: false, spd: 0 };
+  function settings() { return Object.assign({}, SET0, rec().set || {}); }
+  function calm() { return settings().calm || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  // 진동: 합성 · 보스 등장 · 신화 같은 중요한 순간만 (iOS Safari 는 지원 안 함 → 소리 · 흔들림으로 대신)
+  function vib(p) { try { if (settings().vib && navigator.vibrate) navigator.vibrate(p); } catch (e) { /* 막힌 브라우저 */ } }
+  function applySettings() {
+    const st = settings();
+    S.on = st.sfx;
+    if (S.music) S.music(st.music);
+    document.body.classList.toggle('calm', !!calm());
+  }
   // 피해가 클수록 숫자를 크게 (10 ≈ 기본, 1만 ≈ 1.5배) — 큰 한 방이 눈에 띄게
   const dmgSize = (d, base) => Math.min(base * 1.7, base * (0.78 + Math.log10(Math.max(1, d)) * 0.18));
 
@@ -54,26 +67,38 @@
   function found(r) { return Array.isArray(r.found) ? r.found : []; }
 
   // ── 크기 맞추기 ───────────────────────────────────────────
+  // 기기 배치 — UA 대신 화면 너비 · 방향으로: phone(<600) · tab(600~839, 또는 세로로 긴 1100 미만) · wide(가로 태블릿 · 노트북)
+  function layoutOf(w, h) { return w < 600 ? 'phone' : w < 840 || (h > w * 1.15 && w < 1100) ? 'tab' : 'wide'; }
   function fit() {
     dpr = Math.min(3, window.devicePixelRatio || 1);
-    const phone = innerWidth <= 760;
+    const L = layoutOf(innerWidth, innerHeight);
+    if (document.body.dataset.lay !== L) document.body.dataset.lay = L;
+    const app = $('app'), cs = getComputedStyle(app);
+    const padT = parseFloat(cs.paddingTop), padB = parseFloat(cs.paddingBottom), padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
+    const gap = parseFloat(cs.rowGap) || 6;
     const hud = document.querySelector('.hud').offsetHeight;
     const foot = document.querySelector('.fan').offsetHeight;
+    const frame = 8 + 6;   // 판 테두리 둘 + 그림자
+    const stageH = innerHeight - padT - padB - hud - foot - gap * 2;
     let wAvail, hAvail;
-    if (phone) {
-      const panel = document.querySelector('.panel').offsetHeight;
-      wAvail = innerWidth - 12 - 6;
-      hAvail = innerHeight - hud - panel - foot - 6 - 5 * 3 - 6 - 6;
+    if (L === 'wide') {
+      const panel = document.querySelector('.panel').offsetWidth || 340;
+      wAvail = innerWidth - padL - padR - panel - 14 - frame;
+      hAvail = stageH - frame;
     } else {
-      wAvail = Math.min(980, innerWidth - 16) - 300 - 10 - 8;
-      hAvail = innerHeight - hud - foot - 8 - 4 - 6 * 2 - 8;
+      const panel = document.querySelector('.panel').offsetHeight;
+      wAvail = Math.min(innerWidth - padL - padR, L === 'tab' ? 760 : 9999) - frame;
+      hAvail = stageH - panel - 6 - frame;
     }
-    const tile = Math.min(TILE_MAX, Math.max(30, Math.floor(Math.min(wAvail / COLS, hAvail / (BH / TILE)))));
+    const tile = Math.min(TILE_MAX, Math.max(28, Math.floor(Math.min(wAvail / COLS, hAvail / (BH / TILE)))));
     cvs.style.width = tile * COLS + 'px';
     cvs.style.height = (tile * BH) / TILE + 'px';
     cvs.width = Math.round(tile * COLS * dpr);
     cvs.height = Math.round(((tile * BH) / TILE) * dpr);
     s = cvs.width / BW;
+    // 넓은 배치: 윗줄을 판 + 옆 판넬 폭에 맞춤 (화면 끝까지 늘어나 보이지 않게)
+    const hudEl = document.querySelector('.hud');
+    hudEl.style.maxWidth = L === 'wide' ? tile * COLS + frame + 14 + (document.querySelector('.panel').offsetWidth || 340) + 'px' : '';
   }
 
   // ── 초상 (판넬 · 도감 · 시작 화면) — 시트의 portrait.png 를 정사각 캔버스 가운데에 ─────
@@ -170,7 +195,7 @@
           view.fx.push({ type: 'rays', x: p.x, y: p.y, col: '#ffe3f0', t: -0.2, life: 1.8 });
           setTimeout(() => sparks(p.x, p.y, 'myth', 24, 18), 250);
           card(e.slot, e.ch, 4, true, 0.25);
-          view.shake = 0.45; hitStop(0.25); flashScreen('#ffffff', 0.7, 0.4);
+          view.shake = 0.45; hitStop(0.25); flashScreen('#ffffff', 0.7, 0.4); vib(50);
           banner('신화 ' + CH[e.ch].name + ' 탄생!', '「' + T.recipes[e.r].myth.name + '」', 'myth');
           S.play('myth');
           const r = rec(); r.found = found(r); if (!r.found.includes(e.r)) { r.found.push(e.r); saveRec(r); }
@@ -265,7 +290,7 @@
           view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#ffffff', r0: 2, r1: 20, t: -0.18, life: 0.3, w: 2 });
           setTimeout(() => sparks(p.x, p.y, GR[e.g].key, 8 + e.g * 5, 14), 200);
           card(e.slot, e.ch, e.g, true, 0.18);
-          S.play('merge');
+          S.play('merge'); vib(e.g >= 3 ? 40 : 15);
           hitStop(e.g >= 3 ? 0.14 : 0.05);
           flashScreen(GR[e.g].glow, e.g >= 3 ? 0.55 : 0.28, e.g >= 3 ? 0.35 : 0.16);
           view.shake = Math.max(view.shake, 0.06 + e.g * 0.04);
@@ -382,7 +407,7 @@
           break;
         }
         case 'boss': {
-          S.play('boss'); S.play('siren'); view.shake = 0.35;
+          S.play('boss'); S.play('siren'); view.shake = 0.35; vib([30, 40, 30]);
           const B = BOSS[e.bt], f = MON.ready ? MON.frame('boss', e.bt, 'front', 0) : null;
           cutin('경고! 보스 등장', B.name + ' — 「' + B.skill + '」 ' + B.desc, 'boss', f && f.img.src);
           break;
@@ -810,7 +835,7 @@
     const t = view.t;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#c9e5a6'; ctx.fillRect(0, 0, cvs.width, cvs.height);
-    const sh = view.shake > 0 ? view.shake * 6 * s : 0;
+    const sh = view.shake > 0 && !calm() ? view.shake * 6 * s : 0;
     ctx.setTransform(s, 0, 0, s, (Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh + PAD * s);
     ctx.imageSmoothingEnabled = false;
     if (floorHi) {
@@ -920,6 +945,8 @@
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
   function hudTick() {
     if (!g) return;
+    if (bannerQ.length && view.t - bannerAt >= 1.5) banner.apply(null, bannerQ.shift());
+    coachTick();
     setText('waveTxt', g.wave ? (g.endless ? '무한 ' + g.wave : '웨이브 ' + g.wave + '/' + T.waves) : '준비');
     const last = g.wave >= T.waves && !g.endless;
     setText('waveT', g.over ? '' : last ? '남은 ' + Math.ceil(Math.max(0, g.tWave)) + '초' : '다음 ' + Math.ceil(Math.max(0, g.tWave)) + '초');
@@ -1046,8 +1073,12 @@
     el.appendChild(d);
     el.className = 'go ' + (kind || 'wave');
   }
+  $('toast').addEventListener('click', () => $('toast').classList.remove('on'));
   function bump(el) { if (!el) return; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  const bannerQ = [];
   function banner(big, small, cls) {
+    // 앞 배너가 아직 보이면 줄 세움 (보스 토벌 · 신화 · 웨이브가 한꺼번에 겹치지 않게) — hudTick 이 꺼냄
+    if (view.t - bannerAt < 1.5) { if (bannerQ.length < 3) bannerQ.push([big, small, cls]); return; }
     bannerAt = view.t;
     const el = $('banner');
     el.className = ''; void el.offsetWidth;
@@ -1110,15 +1141,21 @@
   $('oddsBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); const r = g.oddsUp(); if (!r.ok) { toast(r.why); S.play('nope'); } });
   $('luckBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); luckScreen(); });
   $('mythBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); mythScreen(); });
-  $('spdBtn').addEventListener('click', () => { spd = (spd + 1) % speeds.length; $('spdBtn').textContent = '×' + speeds[spd]; });
-  $('sndBtn').addEventListener('click', () => { S.on = !S.on; $('sndBtn').setAttribute('aria-pressed', String(S.on)); const r = rec(); r.mute = !S.on; saveRec(r); });
+  $('spdBtn').addEventListener('click', () => { spd = (spd + 1) % speeds.length; $('spdBtn').firstChild.textContent = '×' + speeds[spd]; });
+  $('setBtn').addEventListener('click', () => { S.unlock(); settingsScreen(phase === 'play' ? 'pause' : null); });
   $('pauseBtn').addEventListener('click', () => { if (phase === 'play') pauseScreen(); });
   $('codexBtn2').addEventListener('click', () => { if (phase === 'play') { phase = 'pause'; } codexScreen(true); });
   document.addEventListener('keydown', (ev) => {
     if (phase !== 'play' || ev.repeat) return;
-    if (ev.key === ' ' || ev.key === 's' || ev.key === 'S') { ev.preventDefault(); $('summonBtn').click(); }
-    else if (ev.key === 'Escape') sel = -1;
-    else if (ev.key === 'p' || ev.key === 'P') pauseScreen();
+    const k = ev.key.toLowerCase();
+    if (k === ' ' || k === 's') { ev.preventDefault(); $('summonBtn').click(); }
+    else if (k === 'escape') { if (sel >= 0) sel = -1; else pauseScreen(); }
+    else if (k === 'p') pauseScreen();
+    else if (k === 'f') $('spdBtn').click();
+    else if (k === 'q') $('oddsBtn').click();
+    else if (k === 'w') $('luckBtn').click();
+    else if (k === 'e') $('mythBtn').click();
+    else if (k >= '1' && k <= '4') { const b = $('up' + (+k - 1)); if (b) b.click(); }
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && phase === 'play') pauseScreen(); });
   addEventListener('resize', () => { fit(); });
@@ -1219,13 +1256,35 @@
     });
     btn('backBtn', () => { if (inGame) { close(); phase = 'play'; } else titleScreen(); });
   }
+  // 설정 덮개: back = 닫으면 돌아갈 곳('pause' = 멈춤 메뉴, 없으면 시작 화면)
+  function settingsScreen(back) {
+    if (phase === 'play') phase = 'pause';
+    const st = settings();
+    const row = (id, label, on, note) => '<label><span>' + label + (note ? ' <small class="sub">' + note + '</small>' : '') + '</span><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '></label>';
+    open('<h2>설정</h2><div class="set">' +
+      row('stSfx', '효과음', st.sfx) + row('stMusic', '음악', st.music) +
+      row('stVib', '진동', st.vib, navigator.vibrate ? '합성 · 보스 등장' : '이 기기는 지원 안 함') +
+      row('stCalm', '움직임 줄이기', st.calm, '흔들림 · 번쩍임 끔') +
+      '<label><span>기본 빠르기</span><select id="stSpd">' + speeds.map((v, i) => '<option value="' + i + '"' + (i === st.spd ? ' selected' : '') + '>×' + v + '</option>').join('') + '</select></label>' +
+      '</div><div class="row-btns"><button class="btn" id="setDone">' + (back === 'pause' ? '돌아가기' : '닫기') + '</button></div>');
+    const save = () => {
+      const r = rec();
+      r.set = { sfx: $('stSfx').checked, music: $('stMusic').checked, vib: $('stVib').checked, calm: $('stCalm').checked, spd: +$('stSpd').value };
+      saveRec(r); applySettings();
+      spd = r.set.spd; $('spdBtn').firstChild.textContent = '×' + speeds[spd];
+    };
+    ['stSfx', 'stMusic', 'stVib', 'stCalm', 'stSpd'].forEach((id) => $(id).addEventListener('change', () => { save(); S.play('pick'); if (id === 'stVib' && $(id).checked) vib(20); }));
+    btn('setDone', () => { if (back === 'pause' && g && !g.over) pauseScreen(); else if (phase === 'title' || !g || g.over) titleScreen(); else { close(); phase = 'play'; } });
+  }
   function pauseScreen() {
     phase = 'pause';
     open('<h2>잠깐 쉬어요</h2><p class="sub">' + T.diffs[g.diff].name + ' · 웨이브 ' + g.wave + ' · 동전 ' + g.coins + ' · 클로버 ' + g.clovers + '</p>' + (g.chips.length ? '<div class="vchips">' + chipHtml(g.chips) + '</div>' : '') +
-      '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button></div>');
+      '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="setBtn2">설정</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button></div>' +
+      '<p class="sub keys">단축키: 스페이스 소환 · 1~4 강화 · Q 확률 · W 행운 · E 신화 · F 빠르기 · P/Esc 멈춤</p>');
     btn('resumeBtn', () => { close(); phase = 'play'; });
+    btn('setBtn2', () => settingsScreen('pause'));
     btn('codexBtn', () => codexScreen(true));
-    btn('quitBtn', titleScreen);
+    btn('quitBtn', () => { if (coach) coachEnd(false); titleScreen(); });
   }
   function endScreen(e) {
     if (phase !== 'end') return;
@@ -1333,23 +1392,89 @@
     phase = 'play';
     acc = 0;
     toast(T.diffs[g.diff].name + ' — 소환을 눌러 친구를 불러요!');
+    fit();
+    if (!coach) coachStart();
   }
+
+  // ── 눌림 피드백: 누르는 순간 살짝 눌리고 딸깍 (손가락이 많이 움직이면 취소) ──
+  let pressEl = null, pressXY = null;
+  document.addEventListener('pointerdown', (ev) => {
+    const b = ev.target.closest && ev.target.closest('button');
+    if (!b || b.disabled) return;
+    pressEl = b; pressXY = [ev.clientX, ev.clientY]; b.classList.add('pressed');
+  }, true);
+  const unpress = () => { if (pressEl) pressEl.classList.remove('pressed'); pressEl = null; };
+  document.addEventListener('pointermove', (ev) => { if (pressEl && Math.hypot(ev.clientX - pressXY[0], ev.clientY - pressXY[1]) > 14) unpress(); }, true);
+  document.addEventListener('pointerup', unpress, true);
+  document.addEventListener('pointercancel', unpress, true);
+
+  // ── 처음 1회 안내 — 조건을 채우면 다음 단계, 버튼 하나만 빛남. 판 입력은 막지 않음 ──
+  let coach = null;
+  const touchy = () => matchMedia && matchMedia('(pointer: coarse)').matches;
+  function coachSteps() {
+    const tap = touchy() ? '눌러' : '클릭(스페이스)해';
+    return [
+      { el: '#summonBtn', txt: '<b>소환</b> 버튼을 ' + tap + ' 친구를 불러요 (3번)', done: () => g.summons >= 3 },
+      { el: '#boardWrap', txt: '<b>같은 친구 · 같은 등급</b> 둘을 끌어다 겹치면 한 등급 위로 <b>합성</b>!', done: () => (seen.merge || 0) >= 1, wait: 30 },
+      { el: '#ups', txt: '동전이 모이면 <b>강화</b> — 그 등급 친구 모두 공격력 UP', done: () => g.lv.some((v) => v > 0), wait: 25 },
+      { el: '.tools3', txt: '보스를 잡으면 <b>클로버</b>로 행운 소환 · 전설 셋은 <b>신화 레시피</b>로!', done: () => false, wait: 8 },
+    ];
+  }
+  function coachStart() {
+    if (rec().tut || Q.get('tut') === '0') return;
+    coach = { i: -1, at: 0 };
+    coachNext();
+  }
+  function coachEnd(done) {
+    document.querySelectorAll('.coach-on').forEach((e) => e.classList.remove('coach-on'));
+    $('coach').hidden = true;
+    if (done) { const r = rec(); r.tut = 1; saveRec(r); }
+    coach = null;
+  }
+  function coachNext() {
+    document.querySelectorAll('.coach-on').forEach((e) => e.classList.remove('coach-on'));
+    coach.i++; coach.at = view.t;
+    const st = coachSteps()[coach.i];
+    if (!st) { coachEnd(true); return; }
+    const box = $('coach');
+    box.innerHTML = '<span style="flex:1">' + st.txt + '</span><button class="btn sky small" id="coachSkip">' + (coach.i === 3 ? '알겠어요' : '건너뛰기') + '</button>';
+    box.hidden = false;
+    $('coachSkip').addEventListener('click', () => coachEnd(true));
+    const el = document.querySelector(st.el);
+    if (el && st.el !== '#boardWrap') el.classList.add('coach-on');
+  }
+  function coachTick() {
+    if (!coach || phase !== 'play') return;
+    const st = coachSteps()[coach.i];
+    if (st && (st.done() || (st.wait && view.t - coach.at > st.wait))) coachNext();
+  }
+
+  // 로딩 화면: 그림 묶음(친구 → 괴물 → 판 타일)을 받을 때마다 막대가 참
+  const TIPS = ['같은 친구 · 같은 등급 둘을 겹치면 한 등급 위로!', '장갑 괴물은 화상 · 독 · 관통(모몽가)에 약해요', '재생 괴물은 화상 · 독이 붙으면 회복을 멈춰요',
+    '보스는 기술 전에 멈춰 서서 「준비」 해요', '전설 셋을 모으면 신화 레시피!', '웨이브가 넘어갈 때 동전 5% 이자를 받아요'];
+  $('loadTip').textContent = '팁: ' + TIPS[Math.floor(Math.random() * TIPS.length)];
+  function loadStep(k) { $('loadFill').style.width = Math.round(k * 100) + '%'; }
+  loadStep(0.1);
 
   // ── 시작 ──────────────────────────────────────────────────
   const coinIcons = [$('coinIco'), document.querySelector('#summonBtn .cost canvas'), document.querySelector('#oddsBtn .tc canvas')];
   coinIcons.forEach((c) => { const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(A.coin, 0, 0); });
   buildUps();
-  if (rec().mute) { S.on = false; $('sndBtn').setAttribute('aria-pressed', 'false'); }
-  if (speeds[0] !== 1) $('spdBtn').textContent = '×' + speeds[0];
-  A.loadChars(T.chars, () => MON.load(() => TIL.load(() => {
+  if (rec().mute) { const r = rec(); r.set = Object.assign({}, r.set, { sfx: false }); delete r.mute; saveRec(r); }   // 예전 기록(소리 끔) 옮기기
+  applySettings();
+  { const sp = settings().spd; if (sp > 0 && sp < speeds.length) { spd = sp; $('spdBtn').firstChild.textContent = '×' + speeds[spd]; } }
+  if (speeds[0] !== 1) $('spdBtn').firstChild.textContent = '×' + speeds[0];
+  A.loadChars(T.chars, () => { loadStep(0.5); MON.load(() => { loadStep(0.8); TIL.load(() => {
+    loadStep(1);
     if (TIL.ready) { floorHi = TIL.floor(COLS, ROWS, TILE, 11); topHi = TIL.top(BW, PAD); }
+    setTimeout(() => $('loading').classList.add('done'), 150);
     g = new Core.Game({ seed: 1 });   // 시작 화면 뒤에 빈 판을 보여 주려고
     fit();
     titleScreen();
     hudTick();
     requestAnimationFrame(frame);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); });
-  })));
+  }); }); });
 
   // 확인용 (play_check.py 가 읽기만 함)
   CD.test = {
