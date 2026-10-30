@@ -11,6 +11,9 @@
   1) 위 가장자리에 붙은 납작한 부스러기(윗줄 칸에서 넘어온 1~3줄짜리 선) 지우기 — 원본 PNG 를 고칩니다
   2) 발 기준점 계산: 아래 6줄 불투명 픽셀의 가운데 x · 맨 아래 y. 효과(별·불꽃)가 옆에 붙은 프레임도 몸이 칸 가운데 서게
   3) chars.js 에 {파일, 크기, 기준점} 목록을 씁니다 — 게임은 여기 적힌 파일만 불러옵니다(없는 파일 404 방지)
+  4) 치이카와만 고해상도 — assets/chars/chiikawa/ 는 portfolio_src/_chiikawa_tools/slice_hd.py 가 큰 시트에서 잘라 넣고
+     frames.json 을 씁니다. 여기서는 그 목록을 옮겨 적기만 합니다(PNG 를 고치지 않음).
+     k = 그림 1px 이 판의 몇 도트인지(다른 친구는 1, 치이카와 도트 0.5 · 초상 64/332) — 게임은 w·h·ax·ay 에 k 를 곱해 같은 키로 그림
 """
 import argparse
 import json
@@ -23,7 +26,6 @@ CH = ROOT / "assets" / "chars"
 
 # 눈으로 고른 프레임. shot = 투사체로 날릴 효과만 있는 프레임, fx = 스킬이 터질 때 맞은 자리에 띄울 효과 프레임
 PICK = {
-    "chiikawa":  {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3, 4], "skill": [0, 1, 2, 3, 4], "shot": None, "fx": None},
     # skill_2 는 파란 귀가 빠져 치이카와처럼 보임 · hit_0~2 도 같은 문제(게임은 hit 안 씀)
     "hachiware": {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 3], "shot": "attack_4", "fx": "skill_4"},
     "usagi":     {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 2, 3, 4], "shot": "attack_4", "fx": None},
@@ -123,11 +125,36 @@ def entry(name, fn, body=True, fix=True):
     return {"f": f"{name}/{fn}.png", "w": im.width, "h": im.height, "ax": ax, "ay": ay}
 
 
+# 치이카와 고해상도에서 고른 것: 스킬은 포크 반짝 · 모으기 · 하트 포크(큰 하트·방울은 칸을 크게 넘어 뺌)
+HD_PICK = {"idle": None, "attack": None, "skill": [0, 1, 3], "shot": "heart_shot", "fx": "heart_burst"}
+PORTRAIT_DOTS = 64     # 다른 친구 초상(61~73칸)과 같은 크기로 보이게
+
+
+def hd_chiikawa():
+    man = json.loads((CH / "chiikawa" / "frames.json").read_text())
+    F = man["frames"]
+    ent = lambda e: {"f": "chiikawa/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["ax"], "ay": e["ay"], "k": e["k"]}
+    d = {}
+    for k in ("idle", "attack", "skill"):
+        idx = HD_PICK[k]
+        d[k] = [ent(e) for e in (F[k] if idx is None else [F[k][i] for i in idx])]
+    for k in ("shot", "fx"):
+        e = man["fx"][HD_PICK[k]]
+        d[k] = {"f": "chiikawa/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["w"] / 2, "ay": e["h"] / 2, "k": e["k"]}
+    p = man["portrait"]
+    d["portrait"] = {"f": "chiikawa/" + p["f"] + ".png", "w": p["w"], "h": p["h"], "ax": p["w"] / 2, "ay": p["h"] / 2,
+                     "k": round(PORTRAIT_DOTS / p["w"], 5)}
+    # 도감·컷인에 쓸 큰 감정 얼굴(기쁨) — 합성 성공 카드에서 씀
+    j = F["emo"][3]
+    d["joy"] = ent(j)
+    return d
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", metavar="PNG", help="고른 프레임을 한 장으로 펴서 여기 저장")
     a = ap.parse_args()
-    out = {}
+    out = {"chiikawa": hd_chiikawa()}
     for name, pk in PICK.items():
         d = {"portrait": entry(name, "portrait", body=False, fix=False)}
         for k in ("idle", "attack", "skill"):
@@ -138,7 +165,7 @@ def main():
     js = (
         "/* 캐릭터 프레임 목록 — tools/chars_manifest.py 가 씁니다(손으로 고치지 말고 그 파일의 PICK 을 고친 뒤 다시 실행).\n"
         "   그림: 사람이 준 팬 도트 시트를 자른 PNG(공식 그림 아님). 잘리거나 깨진 프레임은 빼 두었습니다.\n"
-        "   f = 파일, w·h = 크기, ax·ay = 발 기준점(몸 프레임) 또는 가운데(효과 프레임). */\n"
+        "   f = 파일, w·h = 크기, ax·ay = 발 기준점(몸 프레임) 또는 가운데(효과 프레임), k = 그림 1px 의 도트 수(없으면 1 · 치이카와 고해상도만 씀). */\n"
         "window.CD_CHAR_FILES = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n"
     )
     (CH / "chars.js").write_text(js)
@@ -152,8 +179,8 @@ def main():
             items = [v["portrait"]] + v["idle"] + v["attack"] + v["skill"] + [x for x in (v["shot"], v["fx"]) if x]
             for c, e in enumerate(items):
                 im = Image.open(CH / e["f"]).convert("RGBA")
-                k = 2 if e is v["portrait"] else S
-                b = im.resize((im.width * k, im.height * k), Image.NEAREST)
+                k = (2 if e is v["portrait"] else S) * e.get("k", 1)
+                b = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.NEAREST if k >= 1 else Image.LANCZOS)
                 img.paste(b, (c * cw + int(cw / 2 - e["ax"] * k), r * cw + cw - 4 - int(e["ay"] * k)), b)
         dst = Path(a.board)
         img.save(dst)

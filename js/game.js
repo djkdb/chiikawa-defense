@@ -62,11 +62,14 @@
   function portrait(id, cssPx, hop) {
     const C = A.char[id], P = C.portrait;
     const c = document.createElement('canvas');
+    // 고해상도 초상(치이카와)은 그림 해상도 그대로 담아 CSS 가 줄이게 — R = 그림 px / 도트
+    const R = Math.max(1, Math.min(4, 1 / (P.k || 1)));
     const n = Math.max(P.w, P.h) + 4;
-    c.width = n; c.height = n;
+    c.width = Math.round(n * R); c.height = Math.round(n * R);
     const x = c.getContext('2d');
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-    x.drawImage(P.img, Math.round((n - P.w) / 2), Math.round((n - P.h) / 2));
+    x.scale(R, R);
+    x.drawImage(P.img, (n - P.w) / 2, (n - P.h) / 2, P.w, P.h);
     if (!C.real) { x.font = '20px Galmuri11, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = A.INK; x.fillText(C.label, n / 2, n / 2 + 2); }
     c.style.imageRendering = 'auto';   // 줄여서 보이므로 부드럽게
     if (cssPx) { c.style.width = cssPx + 'px'; c.style.height = cssPx + 'px'; }
@@ -170,7 +173,9 @@
         case 'skillfx': {
           const X = e.x * TILE, Y = e.y * TILE, C = A.char[e.ch];
           const img = C.fx || (e.ch === 'rakko' || e.ch === 'usagi' ? C.shot : null);
-          if (img) view.fx.push({ type: 'sprite', img, x: X, y: Y - 6, t: 0, life: 0.55, k0: 0.5, k1: e.ch === 'shisa' || e.ch === 'momonga' ? 1.25 : 1.05 });
+          // 효과 그림이 큰 것(치이카와 하트 폭발, 약 65 도트)은 다른 친구 효과(약 30 도트) 크기로 맞춤
+          const nk = img ? Math.min(1, 34 / Math.max(img.w, img.h)) : 1;
+          if (img) view.fx.push({ type: 'sprite', img, x: X, y: Y - 6, t: 0, life: 0.55, k0: 0.5 * nk, k1: (e.ch === 'shisa' || e.ch === 'momonga' ? 1.25 : 1.05) * nk });
           else { view.fx.push({ type: 'ring', x: X, y: Y - 4, col: SKILL_COL[e.ch] || '#ffffff', r0: 3, r1: 16, t: 0, life: 0.35, w: 3 }); sparks(X, Y - 6, 'white', 7, 10); }
           if (e.ch === 'chiikawa') { view.shake = Math.max(view.shake, 0.12); }
           break;
@@ -230,12 +235,13 @@
     if (o.rot) x.rotate(o.rot);
     x.scale((o.sx || 1) * (o.flip ? -1 : 1), o.sy || 1);
     if (o.alpha != null) x.globalAlpha = o.alpha;
-    const dev = s * k0;   // 이 프레임 1 픽셀이 기기 픽셀 몇 개인지
+    const dev = s * k0 * (f.k || 1);   // 이 그림 1 픽셀이 기기 픽셀 몇 개인지 (치이카와 고해상도 도트는 k=0.5 라 다른 친구의 절반)
     let img = f.img;
     if (PX === 'nearest') x.imageSmoothingEnabled = false;
     else {
       x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-      if (PX === 'hybrid' && dev > 1.2) img = A.big(f.img, Math.min(6, Math.ceil(dev)));
+      // 1배 근처(치이카와 도트를 칸 64px·DPR 1 에서)도 2배로 키운 판을 줄여 그림 — 숨쉬기 늘임(±2%)에서 줄이 겹치지 않게
+      if (PX === 'hybrid' && dev > 0.95) img = A.big(f.img, Math.min(6, Math.ceil(dev * 1.01)));
     }
     if (o.glow) {
       const sil = A.silhouette(f.img, o.glow);
@@ -376,8 +382,8 @@
       x.fillStyle = k > 0.5 ? '#7ddc6a' : k > 0.25 ? '#ffc94a' : '#ff6a6a'; x.fillRect(bx, byy, Math.ceil(bw * k), 2);
     }
   }
-  // 투사체: 시트에 효과 프레임(물방울·불꽃·바람·별·잎·술병)이 있으면 그걸 줄여서, 없으면(치이카와) 직접 그린 별
-  const SHOT_SIZE = 13, SHOT_SPIN = { rakko: 1, pungdengi: 1, kurimanju: 1, chiikawa: 1 }, SHOT_AIM = { hachiware: 1, usagi: 1, momonga: 1 };
+  // 투사체: 시트에 효과 프레임(물방울·불꽃·바람·별·잎·술병 · 치이카와는 고해상도 시트의 분홍 하트)을 줄여서, 없으면 직접 그린 별
+  const SHOT_SIZE = 13, SHOT_SPIN = { rakko: 1, pungdengi: 1, kurimanju: 1 }, SHOT_AIM = { hachiware: 1, usagi: 1, momonga: 1 };
   function drawProj(x, p, t) {
     const C = A.char[p.ch], f = C.shot;
     const X = p.x * TILE, Y = p.y * TILE - 6;
@@ -469,7 +475,7 @@
     x.fillStyle = gr.color; A.roundRect(x, -W / 2, -H / 2, W, H, 10); x.fill();
     x.fillStyle = '#fffaf0'; A.roundRect(x, -W / 2 + 4, -H / 2 + 4, W - 8, H - 26, 8); x.fill();
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-    const img = PX === 'hybrid' ? A.big(P.img, Math.min(6, Math.ceil(s))) : P.img;
+    const img = PX === 'hybrid' && !(P.k < 1) ? A.big(P.img, Math.min(6, Math.ceil(s))) : P.img;   // 고해상도 초상은 그대로 줄임
     if (PX === 'nearest') x.imageSmoothingEnabled = false;
     x.drawImage(img, -P.w / 2, -H / 2 + 4 + (H - 26 - P.h) / 2, P.w, P.h);
     x.font = '9px Galmuri11, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
@@ -889,5 +895,10 @@
     boss: () => { const b = g && g.enemies.find((e) => e.kind === 'boss'); return b ? { hp: b.hp, max: b.max, x: b.x, y: b.y } : null; },
     upCost: (i) => g.upCost(i),
     tile: () => cvs.getBoundingClientRect().width / COLS,
+    // 확인용(tools/play_check.py): 칸 i 에 친구를 바로 놓기 · 그 친구의 지금 몸짓(idle·attack·skill)
+    put(i, ch, gr) { g.slots[i].u = g.newUnit(ch, gr || 0); g.emit('summon', { slot: i, ch, g: gr || 0, cost: 0 }); return true; },
+    mode(i) { const u = g.slots[i] && g.slots[i].u; return u ? an(u).mode : null; },
+    // 친구 그림을 다 받았는지 · 칸 위 키(도트) — 치이카와 고해상도가 다른 친구와 같은 키인지 봄
+    charInfo(id) { const C = A.char[id]; return { real: C.real, idle: C.idle.length, attack: C.attack.length, skill: C.skill.length, shot: !!C.shot, fx: !!C.fx, h: C.idle[0].h, k: C.idle[0].k || 1, portraitW: C.portrait.w }; },
   };
 })();

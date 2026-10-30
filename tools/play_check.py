@@ -10,6 +10,8 @@
      소환 = 버튼 누르기 · 합성 = 칸에서 칸으로 끌기(데스크톱 마우스 / 폰 손가락) · 팔기 = 칸 누르기 → 「팔기」 · 강화 = 등급 버튼
   3) 클리어 1판 → 결과 화면 / 「다시 하기」 → 손 놓고 패배 1판 → 결과 화면
   4) 새로 고침 후 시작 화면에 최고 기록이 남는지(localStorage)
+  5) 치이카와(고해상도 도트) 장면 — 칸에 친구들과 나란히 · 공격 · 스킬(하트) · 소환 카드 · 도감 초상 → ck_<기기>_*.png
+     치이카와 그림을 다 받았는지, 칸 위 키가 다른 친구와 같은지(±4 도트)도 봄
 판(공식 레퍼런스 옆에 게임 화면 · 합성 순간 · 보스 · 결과)은 output/chiikawa-defense-check/board.png (커밋 안 함).
 """
 import argparse
@@ -267,6 +269,56 @@ def run_device(pw, base, name, viewport, mobile, speed, seed):
     return {"device": name, "sound_toggle": bool(snd_off and snd_on), "stage": stage, "clear": clear, "lose": lose, "record": rec, "errors": D.errors, "shots": {k: str(v) for k, v in D.shots.items()}}
 
 
+def chiikawa_scenes(pw, base, name, viewport, mobile):
+    """치이카와를 칸에 직접 놓고(CD.test.put) 친구들 사이에서 서 있기 · 공격 · 스킬 · 소환 카드 · 도감 초상을 찍음."""
+    b = pw.chromium.launch()
+    ctx = b.new_context(viewport=viewport, device_scale_factor=3 if mobile else 1, is_mobile=mobile, has_touch=mobile)
+    pg = ctx.new_page()
+    errors = []
+    pg.on("console", lambda m: errors.append(f"{m.type}: {m.text}") if m.type in ("error", "warning") else None)
+    pg.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
+    pg.on("requestfailed", lambda r: errors.append(f"requestfailed: {r.url}"))
+    pg.goto(f"{base}?seed=3&speed=1")
+    pg.wait_for_selector("#startBtn")
+    pg.wait_for_timeout(700)
+    shots = {}
+
+    def shot(label, clip=None):
+        path = OUT / f"ck_{name}_{label}.png"
+        pg.screenshot(path=str(path), clip=clip)
+        shots[label] = str(path)
+
+    info = pg.evaluate("CD_TABLE.chars.map(c => [c.id, CD.test.charInfo(c.id)])")
+    pg.evaluate("document.getElementById('codexBtn').click()")
+    pg.wait_for_timeout(300)
+    shot("codex")
+    pg.evaluate("document.getElementById('backBtn').click()")
+    pg.evaluate("document.getElementById('startBtn').click()")
+    pg.wait_for_timeout(300)
+    # 치이카와 둘(일반 · 영웅)을 하치와레 · 우사기 · 시사 · 모몽가 · 랏코 · 쿠리만쥬 사이에
+    lay = [(5, "hachiware", 0), (6, "chiikawa", 0), (7, "usagi", 1), (9, "shisa", 0), (10, "chiikawa", 2), (11, "momonga", 0), (13, "rakko", 0), (14, "kurimanju", 3)]
+    for i, ch, g in lay:
+        pg.evaluate(f"CD.test.put({i}, '{ch}', {g})")
+        if ch == "chiikawa" and g == 2:
+            pg.wait_for_timeout(260)
+            shot("summon_card")
+    pg.wait_for_timeout(1400)
+    r = pg.evaluate("(()=>{const r=document.getElementById('board').getBoundingClientRect();return {x:r.left,y:r.top,width:r.width,height:r.height}})()")
+    shot("board", r)
+    got = set()
+    t0 = time.time()
+    while len(got) < 2 and time.time() - t0 < 40:
+        for i in (6, 10):
+            m = pg.evaluate(f"CD.test.mode({i})")
+            if m in ("attack", "skill") and m not in got:
+                pg.wait_for_timeout(90 if m == "attack" else 150)
+                shot(m, r)
+                got.add(m)
+        pg.wait_for_timeout(40)
+    b.close()
+    return {"device": name, "info": dict(info), "shots": shots, "errors": errors, "saw": sorted(got)}
+
+
 def font(n):
     for p in ("/usr/local/share/fonts/zun/PretendardVariable.ttf", "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"):
         if Path(p).exists():
@@ -299,7 +351,7 @@ def px_compare(pw, base):
     return crops
 
 
-def board(report, crops):
+def board(report, crops, ck=()):
     """공식 레퍼런스 옆에 기기별 화면(합성 순간 · 보스 · 결과)과 확대 방식 비교를 두 줄로."""
     H = 820
     names = {"result_clear": "클리어 결과", "merge": "합성 순간", "boss_w20": "마지막 보스", "boss_w5": "보스(5웨이브)", "result_lose": "패배 결과", "title_after": "시작(기록 남음)"}
@@ -319,8 +371,10 @@ def board(report, crops):
     row1 += [tile("desk", "merge", desk_crop), tile("desk", "boss_w20", desk_crop) or tile("desk", "boss_w5", desk_crop), tile("desk", "result_clear")]
     row2 = [tile("phone", k) for k in ("merge", "boss_w5", "boss_w20", "result_clear", "result_lose")]
     row3 = [(f"확대 방식 {m}" + (" ← 고름" if m == "hybrid" else ""), Image.open(p).convert("RGB")) for m, p in crops]
-    rows = [[t for t in r if t] for r in (row1, row2, row3)]
-    hs = [H, H, 380]
+    row4 = [(f"치이카와 {'데스크톱' if c['device'] == 'desk' else '폰'} · {k}", Image.open(c["shots"][k]).convert("RGB"))
+            for c in ck for k in ("board", "attack", "skill") if k in c["shots"]]
+    rows = [[t for t in r if t] for r in (row1, row2, row3, row4)]
+    hs = [H, H, 380, 520]
     f = font(30)
     lay, W = [], 0
     for r, h in zip(rows, hs):
@@ -361,10 +415,15 @@ def main():
             if a.only in (None, "phone"):
                 report.append(run_device(pw, base, "phone", {"width": 390, "height": 844}, True, a.speed, a.seed + 1))
             crops = px_compare(pw, base)
+            ck = []
+            if a.only in (None, "desk"):
+                ck.append(chiikawa_scenes(pw, base, "desk", {"width": 1440, "height": 900}, False))
+            if a.only in (None, "phone"):
+                ck.append(chiikawa_scenes(pw, base, "phone", {"width": 390, "height": 844}, True))
     finally:
         srv.terminate()
-    (OUT / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
-    path = board(report, crops)
+    (OUT / "report.json").write_text(json.dumps({"play": report, "chiikawa": ck}, ensure_ascii=False, indent=1))
+    path = board(report, crops, ck)
     bad = []
     for d in report:
         c, l = d["clear"], d["lose"]
@@ -378,7 +437,16 @@ def main():
             bad.append(f"{d['device']}: 소리 끄기 버튼이 안 먹음")
         if not d["record"].get("clears"):
             bad.append(f"{d['device']}: 최고 기록이 안 남음")
-    errs = [e for d in report for e in d["errors"]]
+    for c in ck:
+        me = c["info"]["chiikawa"]
+        hs = [v["h"] for k, v in c["info"].items() if k != "chiikawa"]
+        if not (me["real"] and me["idle"] >= 6 and me["attack"] >= 4 and me["skill"] >= 3 and me["shot"] and me["fx"]):
+            bad.append(f"{c['device']}: 치이카와 그림이 모자람 {me}")
+        if not (min(hs) - 4 <= me["h"] <= max(hs) + 4):
+            bad.append(f"{c['device']}: 치이카와 키 {me['h']} 가 다른 친구({min(hs)}~{max(hs)})와 다름")
+        if c["saw"] != ["attack", "skill"]:
+            bad.append(f"{c['device']}: 치이카와 공격/스킬 장면을 못 봄 {c['saw']}")
+    errs = [e for d in report for e in d["errors"]] + [e for c in ck for e in c["errors"]]
     print("판:", path)
     print("기대와 다른 것:", bad or "없음")
     print("콘솔 오류:", errs or "0")

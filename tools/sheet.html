@@ -27,8 +27,8 @@
   const put = (where, img, k, label) => {
     const f = document.createElement('figure');
     const c = document.createElement('canvas');
-    c.width = img.width * k; c.height = img.height * k;
-    const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(img, 0, 0, c.width, c.height);
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = k < 1 || k % 1 !== 0; x.imageSmoothingQuality = 'high'; x.drawImage(img, 0, 0, c.width, c.height);
     f.appendChild(c);
     const cap = document.createElement('figcaption'); cap.textContent = label; f.appendChild(cap);
     document.getElementById(where).appendChild(f);
@@ -48,10 +48,11 @@
   A.loadChars(T.chars, () => {
     T.chars.forEach((c) => {
       const C = A.char[c.id];
-      put('chars', C.portrait.img, 2, c.name + (C.real ? ' 초상' : ' (자리표시)'));
-      ['idle', 'attack', 'skill'].forEach((k) => C[k].forEach((f, i) => put('chars', f.img, 3, k + i)));
-      if (C.shot) put('chars', C.shot.img, 3, '투사체');
-      if (C.fx) put('chars', C.fx.img, 3, '스킬 효과');
+      // f.k = 그림 1px 의 도트 수(치이카와 고해상도는 1 보다 작음) — 다른 친구와 같은 크기로 보이게 곱함
+      put('chars', C.portrait.img, 2 * (C.portrait.k || 1), c.name + (C.real ? ' 초상' : ' (자리표시)'));
+      ['idle', 'attack', 'skill'].forEach((k) => C[k].forEach((f, i) => put('chars', f.img, 3 * (f.k || 1), k + i)));
+      if (C.shot) put('chars', C.shot.img, 3 * (C.shot.k || 1), '투사체');
+      if (C.fx) put('chars', C.fx.img, 3 * (C.fx.k || 1), '스킬 효과');
     });
     document.body.dataset.ready = '1';
   });
