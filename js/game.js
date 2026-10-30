@@ -6,9 +6,10 @@
   const Q = new URLSearchParams(location.search);
   const A = CD.art.build(T);
   const S = CD.sfx;
+  const MON = CD.mon;
   const TILE = A.TILE, COLS = T.board.cols, ROWS = T.board.rows;
-  // PAD: 판 위쪽 여백(도트). 윗길을 도는 보스(52 도트)·괴물 머리가 캔버스 밖으로 잘리지 않게
-  const PAD = 22;
+  // PAD: 판 위쪽 여백(도트). 윗길을 도는 보스(걷기 56 · 기술 쓸 때 ~68 도트)·괴물 머리가 캔버스 밖으로 잘리지 않게
+  const PAD = 30;
   const BW = COLS * TILE, BH = ROWS * TILE + PAD;
   const $ = (id) => document.getElementById(id);
   const cvs = $('board'), ctx = cvs.getContext('2d');
@@ -18,7 +19,10 @@
   T.chars.forEach((c) => (CH[c.id] = c));
 
   let g = null;
-  let phase = 'title';          // title | play | pause | end
+  let phase = 'title';          // title | play | pause | pick | end
+  let diffSel = 1, nextSeed = 0; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
+  const TR = T.traits, BOSS = {};
+  T.bosses.forEach((b) => (BOSS[b.key] = b));
   let sel = -1, drag = null, hover = -1;
   let s = 1, dpr = 1;           // 도트 → 기기 픽셀 배율
   let speeds = T.speeds.slice();
@@ -29,11 +33,16 @@
   const PX = ['nearest', 'smooth', 'hybrid'].includes(Q.get('px')) ? Q.get('px') : 'hybrid';
   // 칸 한 변 최대 CSS px — 시트 프레임(약 28px)이 칸(32 도트)에 1:1 로 들어가므로 64 면 ×2. 더 키우면 뭉개집니다
   const TILE_MAX = 64;
-  const view = { an: new Map(), fx: [], texts: [], shake: 0, t: 0, flyGhosts: [], cards: [] };
+  const view = { an: new Map(), fx: [], texts: [], shake: 0, t: 0, flyGhosts: [], cards: [], bigHit: new Map(), warn: null };
 
   // ── 기록 (이 브라우저에만) ─────────────────────────────────
   function rec() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
   function saveRec(r) { try { localStorage.setItem(STORE, JSON.stringify(r)); } catch (e) { /* 사생활 보호 모드 등 — 기록만 못 남김 */ } }
+  // 난이도별 기록 { plays, best, clears, bestTime, endless } · 신화 레시피 발견 목록 found[]
+  function drec(r, i) { r.d = r.d || {}; return (r.d[T.diffs[i].key] = r.d[T.diffs[i].key] || {}); }
+  // 쉬움·보통은 처음부터, 그 위는 바로 아래 난이도를 한 번이라도 깨면
+  function unlocked(r, i) { return i <= 1 || !!(r.d && r.d[T.diffs[i - 1].key] && r.d[T.diffs[i - 1].key].clears); }
+  function found(r) { return Array.isArray(r.found) ? r.found : []; }
 
   // ── 크기 맞추기 ───────────────────────────────────────────
   function fit() {
@@ -114,11 +123,23 @@
     view.cards.push({ ch, g, big, x: p.x, y: p.y, t: -(delay || 0), life: big ? 1.15 : 0.8 });
   }
   const MON_COLS = ['#9d8cc6', '#7a68a6', '#ffd0dc', '#fff3b0', '#cfe7ff'];
+  const TRAIT_COL = { fast: '#ffe08a', armor: '#b9bdc6', regen: '#9be07a', split: '#ffb3c8', revive: '#cfefff' };
+  const traitNames = (ks) => (ks && ks.length ? ks.map((k) => TR[k].name).join(' · ') : '특성 없음');
+  // 신화 무지개 (방석 · 카드 테두리)
+  const RAINBOW = ['#ff7aa8', '#ffb45a', '#ffe36a', '#8fe08a', '#7cc4ff', '#b48cff'];
+  function rainbow(x, X, Y, w, h, r, t) {
+    const gr = x.createLinearGradient(X, Y, X + w, Y + h);
+    RAINBOW.forEach((c, i) => gr.addColorStop(((i / RAINBOW.length) + t * 0.25) % 1, c));
+    return gr;
+  }
 
   const txtAt = new Map();   // 괴물 id → 마지막으로 숫자를 띄운 때
   // ── 사건 → 연출 · 소리 ────────────────────────────────────
+  const seen = {};   // 확인용: 지금까지 일어난 사건 수 (tools/play_check_v2.py 가 읽기만 함)
   function onEvents() {
     for (const e of g.ev) {
+      const sk = e.type + (e.bt && e.type !== 'kill' ? ':' + e.bt : '') + (e.type === 'kill' && e.trait ? ':' + e.trait : '');
+      seen[sk] = (seen[sk] || 0) + 1;
       switch (e.type) {
         case 'summon': {
           const u = g.slots[e.slot].u, a = an(u), p = slotXY(e.slot);
@@ -127,9 +148,104 @@
           view.fx.push({ type: 'pillar', x: p.x, y: p.y, col: GR[e.g].color, t: 0, life: 0.55 });
           sparks(p.x, p.y, GR[e.g].key, 6 + e.g * 4, 12);
           S.play('summon');
-          if (e.g >= 1) { S.play(e.g >= 2 ? 'legend' : 'rare'); text(p.x, p.y - 18, GR[e.g].name + '!', GR[e.g].color, 9, { life: 1.1, vy: -10 }); }
+          if (e.g >= 1) { S.play(e.g >= 2 ? 'legend' : 'rare'); text(p.x, p.y - 18, (e.luck ? '행운 ' : '') + GR[e.g].name + '!', GR[e.g].color, 9, { life: 1.1, vy: -10 }); }
           break;
         }
+        case 'myth': {
+          const u = g.slots[e.slot].u, a = an(u), p = slotXY(e.slot);
+          a.delay = 0.3; a.pop = 1; a.flash = 1;
+          for (const f of e.from) { const q = slotXY(f); view.flyGhosts.push({ ch: T.recipes[e.r].need[e.from.indexOf(f) + 1], g: 3, x0: q.x, y0: q.y, x1: p.x, y1: p.y, t: 0, life: 0.3 }); }
+          RAINBOW.forEach((c, i) => view.fx.push({ type: 'ring', x: p.x, y: p.y, col: c, r0: 3, r1: 26 + i * 6, t: -0.25 - i * 0.05, life: 0.6, w: 2 }));
+          view.fx.push({ type: 'rays', x: p.x, y: p.y, col: '#ffe3f0', t: -0.2, life: 1.8 });
+          setTimeout(() => sparks(p.x, p.y, 'myth', 24, 18), 250);
+          card(e.slot, e.ch, 4, true, 0.25);
+          view.shake = 0.45;
+          banner('신화 ' + CH[e.ch].name + ' 탄생!', '「' + T.recipes[e.r].myth.name + '」', 'myth');
+          S.play('myth');
+          const r = rec(); r.found = found(r); if (!r.found.includes(e.r)) { r.found.push(e.r); saveRec(r); }
+          break;
+        }
+        case 'mythskill': {
+          const p = slotXY(e.slot), M = T.recipes[e.r].myth;
+          text(p.x, p.y - 24, M.name, '#ffd0e6', 8, { life: 1.1, vy: -12, pop: 1 });
+          if (e.kind === 'nova') { view.fx.push({ type: 'nova', x: BW / 2, y: (ROWS * TILE) / 2, t: 0, life: 0.6 }); view.shake = Math.max(view.shake, 0.2); S.play('nova'); }
+          else if (e.kind === 'stun') { view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#ffe27a', r0: 6, r1: M.r * TILE, t: 0, life: 0.5, w: 4, fill: 'rgba(255,230,120,.18)' }); S.play('stun'); }
+          else S.play('skill');
+          break;
+        }
+        case 'meteor': {
+          const X = e.x * TILE, Y = e.y * TILE;
+          view.fx.push({ type: 'meteor', x: X, y: Y, t: 0, life: 0.45 });
+          setTimeout(() => { parts(X, Y - 6, ['#fff3b0', '#ffd36a', '#ffffff'], 16, 40); S.play('thud'); }, 200);
+          break;
+        }
+        case 'swap': {
+          const u = g.slots[e.slot].u, p = slotXY(e.slot);
+          if (u) { an(u).pop = 1; an(u).flash = 1; }
+          sparks(p.x, p.y, 'legend', 10, 12);
+          text(p.x, p.y - 20, CH[e.was].name + ' → ' + CH[e.ch].name, '#fff3b0', 7, { life: 1.2, vy: -10 });
+          S.play('luckwin');
+          break;
+        }
+        case 'gamble': S.play(e.win ? 'luckwin' : 'lucklose'); break;
+        case 'odds': toast('소환 확률 Lv' + e.lv + ' — ' + oddsText()); S.play('up'); break;
+        case 'interest': lastInterest = e.coins; break;
+        case 'pick': pickAt = view.t; break;   // 보스 쓰러지는 연출을 잠깐 보여 준 뒤 frame() 이 보상 화면을 엶
+        case 'chose': {
+          const c = e.card;
+          if (c.gamble) { toast(e.win ? c.name + ' — 성공!' : c.name + ' — 아쉽게 꽝'); S.play(e.win ? 'luckwin' : 'lucklose'); }
+          else { toast(c.name + ' — ' + c.desc); S.play('coin'); }
+          break;
+        }
+        case 'revive': {
+          const X = e.x * TILE, Y = e.y * TILE;
+          text(X, Y - 26, '부활!', '#cfefff', 8, { life: 1, vy: -10, pop: 1 });
+          view.fx.push({ type: 'ring', x: X, y: Y - 8, col: '#cfefff', r0: 2, r1: 16, t: 0.0, life: 0.5, w: 2 });
+          S.play('revive');
+          break;
+        }
+        case 'split': {
+          const X = e.x * TILE, Y = e.y * TILE;
+          text(X, Y - 22, '분열!', '#ffb3c8', 7, { life: 0.8, vy: -10 });
+          S.play('split');
+          break;
+        }
+        case 'bwarn': {
+          const B = BOSS[e.bt];
+          view.warn = { id: e.id, bt: e.bt, targets: e.targets, t: 0, life: B.warn };
+          text(e.x * TILE, e.y * TILE - 50, B.skill + ' 준비!', '#ffd0e6', 9, { life: B.warn, vy: -2, pop: 1 });
+          S.play('warn');
+          break;
+        }
+        case 'bcast': {
+          const B = BOSS[e.bt], X = e.x * TILE, Y = e.y * TILE;
+          view.warn = null;
+          if (e.bt === 'silence') {
+            for (const i of e.targets) { const p = slotXY(i); view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#b48cff', r0: 20, r1: 3, t: 0, life: 0.4, w: 3 }); sparks(p.x, p.y, 'epic', 6, 10); }
+            banner('침묵!', '친구 ' + e.targets.length + '명이 ' + B.t + '초 동안 봉인', 'boss');
+            S.play('silence');
+          } else if (e.bt === 'summon') {
+            parts(X, Y - 10, ['#fff6e3', '#cfe7ff', '#ffd0dc'], 20, 40); S.play('bsummon');
+            text(X, Y - 54, '졸개 ' + B.n + '마리!', '#ffffff', 8, { life: 1 });
+          } else if (e.bt === 'heal') {
+            text(X, Y - 54, '+' + fmt(e.heal), '#9be07a', 10, { life: 1.1, pop: 1 });
+            view.fx.push({ type: 'ring', x: X, y: Y - 20, col: '#b8f07a', r0: 8, r1: 40, t: 0, life: 0.6, w: 3, fill: 'rgba(190,240,120,.18)' });
+            S.play('bheal');
+          } else if (e.bt === 'shuffle') {
+            for (const [from, to] of e.moves) {
+              const u = g.slots[to].u, q = slotXY(from), p = slotXY(to);
+              if (!u || from === to) continue;
+              an(u).delay = 0.5;
+              view.flyGhosts.push({ ch: u.ch, g: u.g, x0: q.x, y0: q.y, x1: p.x, y1: p.y, t: 0, life: 0.5 });
+            }
+            sel = -1; drag = null; hover = -1;
+            view.shake = 0.3;
+            banner('셔플!', '친구 자리가 섞였어요', 'boss');
+            S.play('shuffle');
+          }
+          break;
+        }
+        case 'endless': banner('무한 모드!', '어디까지 버틸까요', 'myth'); S.play('wave'); break;
         case 'merge': {
           const u = g.slots[e.slot].u, a = an(u), p = slotXY(e.slot), q = slotXY(e.from);
           a.delay = 0.22; a.pop = 1; a.flash = 1;
@@ -189,6 +305,8 @@
           // 맞은 자리에 그 친구 색의 별 터짐(공격 이펙트 줄) — 지속 피해(독·화상)는 빼고 숫자를 띄울 때만
           const HC = A.char[e.ch] && A.char[e.ch].hit;
           if (HC && e.kind !== 'psn' && e.kind !== 'burn' && e.kind !== 'poison') { const hk = 14 / Math.max(HC.w, HC.h) * (e.crit || e.skill ? 1.4 : 1); view.fx.push({ type: 'hitspr', img: HC, x: X, y: Y + 6, t: 0, life: 0.24, k0: 0.6 * hk, k1: hk }); }
+          if (e.skill || e.crit) view.bigHit.set(e.id, 0.22);
+          if (e.armor && Math.random() < 0.25) { text(X - 6, Y - 6, '막음', '#d6dae2', 6, { life: 0.5 }); S.play('tink'); }
           if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', 8, { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); }
           else if (e.kind === 'psn') { if (Math.random() < 0.6) text(X - 4, Y, fmt(e.dmg), '#9be07a', 6, { life: 0.5 }); break; }
           else if (e.skill) text(X, Y - 3, fmt(e.dmg), '#fff3b0', 9, { life: 0.8, vy: -20, pop: 1 });
@@ -208,21 +326,31 @@
         case 'kill': {
           txtAt.delete(e.id);
           const X = e.x * TILE, Y = e.y * TILE;
-          parts(X, Y - 4, MON_COLS, e.kind === 'boss' ? 40 : 9, e.kind === 'boss' ? 60 : 30);
+          parts(X, Y - 4, e.trait ? [TRAIT_COL[e.trait], '#ffffff', '#fff3b0'] : MON_COLS, e.kind === 'boss' ? 40 : 9, e.kind === 'boss' ? 60 : 30);
+          view.bigHit.delete(e.id);
+          // 특성 괴물: 시트의 쓰러짐 프레임(분열은 갈라짐)이 잠깐 남았다 사라짐
+          if (e.trait && MON.ready) {
+            const act = e.trait === 'split' ? (e.small ? 'small' : 'split') : 'down';
+            view.fx.push({ type: 'corpse', grp: 'mon', name: e.trait, act, x: X, y: Y, flip: e.dir === 2 || e.dir === 3, t: 0, life: e.trait === 'split' && !e.small ? 0.5 : 0.55 });
+          }
           view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
           text(X, Y - 14, '+' + e.coins, '#ffd54a', e.kind === 'boss' ? 11 : 7, { coin: true, life: 0.9, vy: -14 });
           S.play('pop'); S.play('coin');
-          if (e.kind === 'boss') { view.shake = 0.4; banner('키메라 토벌!', '+' + e.coins + ' 동전', 'boss'); }
+          if (e.kind === 'boss') { view.shake = 0.4; view.warn = null; banner(BOSS[e.bt].name + ' 토벌!', '+' + e.coins + ' 동전 · 클로버 +' + T.luck.boss, 'boss'); }
           break;
         }
-        case 'wave':
-          if (e.last) banner('마지막 웨이브!', '보스를 ' + T.finalTime + '초 안에', 'boss');
-          else if (e.boss) banner('보스 웨이브 ' + e.n, '키메라가 와요!', 'boss');
-          else banner('웨이브 ' + e.n);
+        case 'wave': {
+          const it = lastInterest ? ' · 이자 +' + lastInterest : '';
+          lastInterest = 0;
+          const B = e.bt ? BOSS[e.bt] : null;
+          if (e.last) banner('마지막 웨이브!', B.name + ' (' + B.skill + ') — ' + T.finalTime + '초 안에', 'boss');
+          else if (e.boss) banner('보스 웨이브 ' + e.n, B.name + ' — 기술 「' + B.skill + '」', 'boss');
+          else banner('웨이브 ' + e.n, (e.traits.length ? traitNames(e.traits) : '') + it);
           S.play('wave');
           break;
+        }
         case 'boss': S.play('boss'); view.shake = 0.3; break;
-        case 'end': setTimeout(() => endScreen(e), e.win ? 600 : 900); S.play(e.win ? 'win' : 'lose'); phase = 'end'; break;
+        case 'end': setTimeout(() => endScreen(e), e.win ? 600 : 900); S.play(e.win ? 'win' : 'lose'); phase = 'end'; view.warn = null; break;
       }
     }
     g.ev.length = 0;
@@ -296,8 +424,20 @@
         x.restore();
       }
     }
+    // 보스 침묵 예고: 노리는 칸이 보라색으로 깜빡임
+    if (view.warn && view.warn.targets && view.warn.targets.includes(i)) {
+      x.save(); x.globalAlpha = 0.45 + 0.35 * Math.sin(t * 14);
+      x.fillStyle = '#b48cff'; A.roundRect(x, X + 1, Y + 2, TILE - 2, TILE - 3, 8); x.fill(); x.restore();
+    }
     if (!u) return;
     const a = an(u), gr = GR[u.g];
+    if (u.g >= 4) { // 신화: 무지개 방석 + 테두리
+      x.save();
+      x.fillStyle = gr.glow; A.roundRect(x, X + 2, Y + 3, TILE - 4, TILE - 5, 7); x.fill();
+      x.globalAlpha = 0.35 + 0.15 * Math.sin(t * 3); x.fillStyle = rainbow(x, X, Y, TILE, TILE, 7, t); A.roundRect(x, X + 2, Y + 3, TILE - 4, TILE - 5, 7); x.fill();
+      x.globalAlpha = 1; x.lineWidth = 2.5; x.strokeStyle = rainbow(x, X, Y, TILE, TILE, 7, t + 0.5); A.roundRect(x, X + 3, Y + 4, TILE - 6, TILE - 7, 6); x.stroke();
+      x.restore();
+    } else {
     // 등급 방석: 바탕 빛 + 테두리 색 (전설은 금빛 두 줄)
     x.save();
     x.fillStyle = gr.glow; A.roundRect(x, X + 2, Y + 3, TILE - 4, TILE - 5, 7); x.fill();
@@ -309,7 +449,8 @@
     x.lineWidth = u.g >= 3 ? 2.5 : 2; x.strokeStyle = gr.color; A.roundRect(x, X + 3, Y + 4, TILE - 6, TILE - 7, 6); x.stroke();
     if (u.g >= 3) { x.lineWidth = 1; x.strokeStyle = '#fff3b0'; A.roundRect(x, X + 5, Y + 6, TILE - 10, TILE - 11, 4); x.stroke(); }
     x.restore();
-    if (u.g >= 3) { // 전설: 도는 빛줄기
+    }
+    if (u.g >= 3) { // 전설 · 신화: 도는 빛줄기
       x.save(); x.translate(X + 16, Y + 16); x.rotate(t * 0.8);
       x.globalAlpha = 0.3; x.fillStyle = '#fff3b0';
       for (let k = 0; k < 6; k++) { x.rotate(Math.PI / 3); x.beginPath(); x.moveTo(0, 0); x.lineTo(-2.5, -16); x.lineTo(2.5, -16); x.closePath(); x.fill(); }
@@ -332,6 +473,15 @@
       x.fillStyle = u.hasteT > 0 ? '#ff8a3d' : '#ffd36a'; x.fillRect(X + 4, yy + 1, 3, 1); x.fillRect(X + 5, yy, 1, 1); x.fillRect(X + 5, yy + 2, 1, 3);
     }
     stars(x, X, Y, u.g);
+    // 침묵: 회색 덮개 + 「쉿」 + 남은 시간 고리
+    if (u.silT > 0) {
+      x.save(); x.globalAlpha = 0.55; x.fillStyle = '#5b4b84'; A.roundRect(x, X + 2, Y + 3, TILE - 4, TILE - 5, 7); x.fill();
+      x.globalAlpha = 1; x.strokeStyle = '#d9c8ff'; x.lineWidth = 2;
+      x.beginPath(); x.arc(X + 16, Y + 15, 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, u.silT / BOSS.silence.t)); x.stroke();
+      x.font = '8px Galmuri11, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.lineWidth = 3; x.strokeStyle = A.INK; x.strokeText('쉿', X + 16, Y + 15); x.fillStyle = '#ffffff'; x.fillText('쉿', X + 16, Y + 15);
+      x.restore();
+    }
     // 합성할 짝이 있으면 초록 화살표
     if (g.mateOf(i) >= 0 && !dragging) {
       const yy = Y + 4 + Math.round(Math.sin(t * 6) * 1.2);
@@ -340,28 +490,76 @@
     }
   }
   function stars(x, X, Y, gi) {
-    const n = GR[gi].stars;
-    for (let k = 0; k < n; k++) star(x, X + 16 - (n - 1) * 3.5 + k * 7, Y + 29, GR[gi].color);
+    const n = GR[gi].stars, step = n >= 5 ? 5.5 : 7;
+    for (let k = 0; k < n; k++) star(x, Math.round(X + 16 - (n - 1) * step / 2 + k * step), Y + 29, gi >= 4 ? RAINBOW[k % RAINBOW.length] : GR[gi].color);
+  }
+  // 시트 프레임(특성 괴물 · 보스) 고르기 — 없으면 null (예전 그린 괴물로)
+  function sheetFrame(e, t) {
+    if (!MON.ready) return null;
+    if (e.bs) {
+      const ph = e.bs.phase, k = Math.floor(t * (ph === 'walk' ? 5 : 4) + e.id);
+      if (ph === 'warn') return { f: MON.frame('boss', e.bt, 'ready', k), face: true };
+      if (ph === 'cast') return { f: MON.frame('boss', e.bt, 'cast', k), face: true };
+      return { f: MON.frame('boss', e.bt, 'walk', k), flip: e.dir === 0 || e.dir === 1 };
+    }
+    if (!e.trait) return null;
+    const flip = e.dir === 2 || e.dir === 3;   // 시트 괴물은 오른쪽을 봄
+    if (e.downT > 0) {
+      const k = 1 - e.downT / TR.revive.downT;
+      return { f: MON.frame('mon', 'revive', k < 0.6 ? 'down' : 'rise', 0), flip, ghost: k < 0.6 };
+    }
+    if (e.small) return { f: MON.frame('mon', 'split', 'small', Math.floor(t * 4 + e.id)), flip };
+    if (view.bigHit.get(e.id) > 0) return { f: MON.frame('mon', e.trait, 'hit', 0), flip };
+    // 재생: 회복 중이면 가끔 반짝 프레임
+    if (e.trait === 'regen' && e.hp < e.max && !(e.burnT > 0) && !(e.psnT > 0) && (t + e.id * 0.3) % 1.6 < 0.3) return { f: MON.frame('mon', 'regen', 'heal', 0), flip };
+    return { f: MON.frame('mon', e.trait, 'walk', Math.floor(t * (e.trait === 'fast' ? 12 : 8) + e.id)), flip };
+  }
+  function drawSheet(x, sf, X, by, e) {
+    const f = sf.f;
+    x.save();
+    x.translate(X, by);
+    if (sf.flip) x.scale(-1, 1);
+    if (sf.ghost) x.globalAlpha = 0.85;
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(f.img, -f.ax, -f.ay, f.w, f.h);
+    if (e && e.hitT > 0.07) { x.globalAlpha = e.kind === 'boss' ? 0.3 : 0.5; x.drawImage(A.silhouette(f.img, '#ffffff'), -f.ax, -f.ay, f.w, f.h); }
+    if (e && e.slowT > 0) { x.globalAlpha = 0.35; x.drawImage(A.silhouette(f.img, '#9fd3ff'), -f.ax, -f.ay, f.w, f.h); }
+    if (e && e.stunT > 0) { x.globalAlpha = 0.35; x.drawImage(A.silhouette(f.img, '#ffe27a'), -f.ax, -f.ay, f.w, f.h); }
+    x.restore();
   }
   function drawEnemy(x, e, t) {
     const fr = Math.floor(t * 4 + e.id * 0.37) % 2;
-    let spr = e.kind === 'boss' ? A.enemy.boss[Math.max(0, Math.floor(e.wave / T.bossEvery) - 1) % 4][fr] : A.enemy[e.kind][fr];
+    const sf = sheetFrame(e, t);
+    if (sf && sf.f) {
+      const X = e.x * TILE, Y = e.y * TILE, by = Y + (e.bs ? 15 : e.small ? 7 : 10), f = sf.f;
+      x.fillStyle = 'rgba(74,53,48,.18)';
+      x.beginPath(); x.ellipse(X, by - 1, Math.min(f.w, e.bs ? 44 : 26) * 0.34, e.bs ? 3.5 : 2.5, 0, 0, Math.PI * 2); x.fill();
+      drawSheet(x, sf, X, by, e);
+      statusFx(x, e, t, X, by, e.bs ? 50 : f.h - 2, e.bs ? 36 : 16);
+      return;
+    }
+    let spr = e.kind === 'boss' ? A.enemy.boss[0][fr] : A.enemy[e.kind === 'minion' ? 'blob' : e.kind][fr];
     const X = e.x * TILE, Y = e.y * TILE;
     const w = spr.width, h = spr.height;
     const by = Y + (e.kind === 'boss' ? 14 : 9);
-    // 그림자
+    const sc = e.kind === 'minion' ? 0.7 : 1;
     x.fillStyle = 'rgba(74,53,48,.18)';
-    x.beginPath(); x.ellipse(X, by, w * 0.32, 2.5, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.ellipse(X, by, w * 0.32 * sc, 2.5, 0, 0, Math.PI * 2); x.fill();
     x.save();
     x.translate(Math.round(X), Math.round(by));
     if (e.dir === 2) x.scale(-1, 1);
+    if (sc !== 1) x.scale(sc, sc);
     x.imageSmoothingEnabled = false;
-    const hop = e.kind === 'fast' ? -Math.abs(Math.sin(t * 9 + e.id)) * 2 : 0;
+    const hop = e.kind === 'minion' ? -Math.abs(Math.sin(t * 9 + e.id)) * 2 : 0;
     x.drawImage(spr, -Math.round(w / 2), -h + hop);
-    // 맞은 순간 번쩍 — 짧고 반투명하게(계속 맞는 보스가 하얀 덩어리로만 보이지 않도록)
     if (e.hitT > 0.07) { x.globalAlpha = e.kind === 'boss' ? 0.35 : 0.6; x.drawImage(A.flashOf(spr), -Math.round(w / 2), -h + hop); x.globalAlpha = 1; }
     if (e.slowT > 0) { x.globalAlpha = 0.4; x.drawImage(A.silhouette(spr, '#9fd3ff'), -Math.round(w / 2), -h + hop); x.globalAlpha = 1; }
+    if (e.stunT > 0) { x.globalAlpha = 0.4; x.drawImage(A.silhouette(spr, '#ffe27a'), -Math.round(w / 2), -h + hop); x.globalAlpha = 1; }
     x.restore();
+    statusFx(x, e, t, X, by, h * sc, e.kind === 'boss' ? 36 : 16);
+  }
+  function statusFx(x, e, t, X, by, h, bw0) {
+    const w = bw0;
     // 상태 표시
     if (e.slowT > 0) { x.fillStyle = '#ffffff'; x.fillRect(X - w / 2 + 2, by - h + 6, 1, 1); x.fillRect(X + w / 2 - 4, by - 6, 1, 1); }
     if (e.burnT > 0) {
@@ -377,11 +575,12 @@
       }
       x.globalAlpha = 1;
     }
-    // 체력 막대
-    const bw = e.kind === 'boss' ? 36 : 16, bx = Math.round(X - bw / 2), byy = Math.round(by - h - 3);
+    // 체력 막대 — 특성 괴물은 테두리가 특성 색 (TRAIT_COL)
+    const bw = bw0, bx = Math.round(X - bw / 2), byy = Math.round(by - h - 3);
+    if (e.downT > 0) return;
     if (e.hp < e.max || e.kind === 'boss') {
       const k = Math.max(0, e.hp / e.max);
-      x.fillStyle = A.INK; x.fillRect(bx - 1, byy - 1, bw + 2, 4);
+      x.fillStyle = e.trait && !e.small ? TRAIT_COL[e.trait] : A.INK; x.fillRect(bx - 1, byy - 1, bw + 2, 4);
       x.fillStyle = '#fff6e3'; x.fillRect(bx, byy, bw, 2);
       x.fillStyle = k > 0.5 ? '#7ddc6a' : k > 0.25 ? '#ffc94a' : '#ff6a6a'; x.fillRect(bx, byy, Math.ceil(bw * k), 2);
     }
@@ -445,6 +644,28 @@
         x.drawImage(im.img, f.x - im.w * sc / 2, f.y - im.h * sc / 2, im.w * sc, im.h * sc);
         break;
       }
+      case 'corpse': {
+        const fr = MON.frame(f.grp, f.name, f.act, f.act === 'split' ? Math.floor(k * 2) : 0);
+        if (!fr) break;
+        x.globalAlpha = k > 0.6 ? 1 - (k - 0.6) / 0.4 : 1;
+        drawSheet(x, { f: fr, flip: f.flip }, f.x, f.y + 10, null);
+        break;
+      }
+      case 'nova': {
+        x.globalAlpha = 0.5 * (1 - k);
+        x.fillStyle = rainbow(x, 0, 0, BW, ROWS * TILE, 0, f.t);
+        x.fillRect(0, 0, BW, ROWS * TILE);
+        x.globalAlpha = 1 - k; x.strokeStyle = '#ffffff'; x.lineWidth = 4;
+        x.beginPath(); x.arc(f.x, f.y, 10 + k * BW, 0, Math.PI * 2); x.stroke();
+        break;
+      }
+      case 'meteor': {
+        const yy = f.y - 60 * (1 - Math.min(1, k * 2.2));
+        x.globalAlpha = 1 - Math.max(0, k - 0.5) * 2;
+        x.strokeStyle = '#fff3b0'; x.lineWidth = 3; x.beginPath(); x.moveTo(f.x + 18, yy - 30); x.lineTo(f.x, yy); x.stroke();
+        star(x, Math.round(f.x), Math.round(yy), '#ffd36a');
+        break;
+      }
       case 'rays':
         x.translate(f.x, f.y); x.rotate(f.t * 2); x.globalAlpha = 0.6 * (1 - k); x.fillStyle = f.col;
         for (let i = 0; i < 10; i++) { x.rotate(Math.PI / 5); x.beginPath(); x.moveTo(0, 0); x.lineTo(-3, -48); x.lineTo(3, -48); x.closePath(); x.fill(); }
@@ -477,7 +698,7 @@
     for (let i = 0; i < 12; i++) { x.rotate(Math.PI / 6); x.beginPath(); x.moveTo(0, 0); x.lineTo(-7, -86); x.lineTo(7, -86); x.closePath(); x.fill(); }
     x.restore();
     x.fillStyle = A.INK; A.roundRect(x, -W / 2 - 3, -H / 2 - 3, W + 6, H + 6, 12); x.fill();
-    x.fillStyle = gr.color; A.roundRect(x, -W / 2, -H / 2, W, H, 10); x.fill();
+    x.fillStyle = c.g >= 4 ? rainbow(x, -W / 2, -H / 2, W, H, 10, view.t) : gr.color; A.roundRect(x, -W / 2, -H / 2, W, H, 10); x.fill();
     x.fillStyle = '#fffaf0'; A.roundRect(x, -W / 2 + 4, -H / 2 + 4, W - 8, H - 26, 8); x.fill();
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
     const img = PX === 'hybrid' && !(P.k < 1) ? A.big(P.img, Math.min(6, Math.ceil(s))) : P.img;   // 고해상도 초상은 그대로 줄임
@@ -487,7 +708,7 @@
     x.fillStyle = '#ffffff'; x.lineWidth = 3; x.strokeStyle = A.INK; x.lineJoin = 'round';
     const label = gr.name + ' ' + CH[c.ch].name;
     x.strokeText(label, 0, H / 2 - 11); x.fillText(label, 0, H / 2 - 11);
-    for (let i = 0; i < gr.stars; i++) star(x, Math.round(-((gr.stars - 1) * 3.5) + i * 7), Math.round(-H / 2 + 10), '#fff3b0');
+    for (let i = 0; i < gr.stars; i++) star(x, Math.round(-((gr.stars - 1) * 3.5) + i * 7), Math.round(-H / 2 + 10), c.g >= 4 ? RAINBOW[i] : '#fff3b0');
     x.restore();
   }
   function drawTexts(x) {
@@ -509,14 +730,20 @@
   function drawBossBar(x) {
     const b = g.enemies.find((e) => e.kind === 'boss');
     if (!b) return;
-    const w = 110, X = (BW - w) / 2, Y = TILE + 3;
+    const w = 110, X = (BW - w) / 2, Y = TILE + 3, B = BOSS[b.bt] || T.bosses[0];
     x.save();
     x.fillStyle = A.INK; A.roundRect(x, X - 3, Y - 2, w + 6, 13, 4); x.fill();
     x.fillStyle = '#fff6e3'; x.fillRect(X, Y + 5, w, 4);
     x.fillStyle = '#ff6a8a'; x.fillRect(X, Y + 5, Math.ceil(w * Math.max(0, b.hp / b.max)), 4);
     x.font = '6px Galmuri11, sans-serif'; x.fillStyle = '#ffffff'; x.textBaseline = 'top';
-    x.fillText(T.enemy.kinds.boss.name + ' ' + fmt(Math.max(0, b.hp)), X, Y - 1);
-    if (g.wave >= T.waves) { x.textAlign = 'right'; x.fillStyle = '#ffd0dc'; x.fillText(Math.ceil(Math.max(0, g.tWave)) + '초', X + w, Y - 1); }
+    x.fillText(B.name + ' ' + fmt(Math.max(0, b.hp)), X, Y - 1);
+    x.textAlign = 'right';
+    if (g.wave >= T.waves && !g.endless) { x.fillStyle = '#ffd0dc'; x.fillText(Math.ceil(Math.max(0, g.tWave)) + '초', X + w, Y - 1); }
+    else if (b.bs) {
+      const ph = b.bs.phase;
+      x.fillStyle = ph === 'walk' ? '#e9dcff' : '#ffd0e6';
+      x.fillText(B.skill + (ph === 'warn' ? ' 준비!' : ph === 'cast' ? ' 쓰는 중' : ' ' + Math.ceil(Math.max(0, b.bs.t)) + '초'), X + w, Y - 1);
+    }
     x.restore();
   }
   function render() {
@@ -572,6 +799,9 @@
       if (n >= 60) acc = 0;
       onEvents();
     }
+    // 보스를 잡아 보상 카드가 걸려 있으면(규칙은 멈춰 있음) 판으로 돌아왔을 때 꼭 보상 화면을 엶
+    // — 행운 · 레시피 덮개가 열려 있던 사이에 보스가 죽어도 판이 멈춘 채 남지 않게
+    if (g && phase === 'play' && g.pick && view.t - pickAt > 1.1) pickScreen();
     tickView(phase === 'play' || phase === 'end' ? dt : 0);
     render();
     hudTick();
@@ -598,6 +828,7 @@
     for (const tx of view.texts) { if (tx.delay > 0) { tx.delay -= dt; tx.t = -1; continue; } tx.t = Math.max(0, tx.t) + dt; tx.y += tx.vy * dt; tx.vy *= 0.92; }
     view.texts = view.texts.filter((tx) => tx.t < tx.life);
     for (const f of view.flyGhosts) f.t += dt;
+    for (const [id, v] of view.bigHit) { if (v - dt <= 0) view.bigHit.delete(id); else view.bigHit.set(id, v - dt); }
     view.flyGhosts = view.flyGhosts.filter((f) => f.t < f.life);
   }
 
@@ -606,13 +837,17 @@
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
   function hudTick() {
     if (!g) return;
-    setText('waveTxt', g.wave ? '웨이브 ' + g.wave + '/' + T.waves : '준비');
-    const last = g.wave >= T.waves;
+    setText('waveTxt', g.wave ? (g.endless ? '무한 ' + g.wave : '웨이브 ' + g.wave + '/' + T.waves) : '준비');
+    const last = g.wave >= T.waves && !g.endless;
     setText('waveT', g.over ? '' : last ? '남은 ' + Math.ceil(Math.max(0, g.tWave)) + '초' : '다음 ' + Math.ceil(Math.max(0, g.tWave)) + '초');
-    const load = g.load(), k = Math.min(1, load / T.cap);
+    // 다음 웨이브 미리 보기: 특성 · 보스
+    const nw = g.wave + 1;
+    const nx = last || g.over ? '' : g.isBossWave(nw) ? '보스 「' + g.bossType(nw).skill + '」' : g.nextTraits().map((k) => TR[k].name).join('·') || '보통';
+    setText('nextTxt', nx ? '다음: ' + nx : '');
+    const load = g.load(), k = Math.min(1, load / g.cap);
     const lb = $('loadBar'); const wpct = Math.round(k * 100) + '%';
     if (hudCache.lb !== wpct) { hudCache.lb = wpct; lb.style.width = wpct; }
-    setText('loadTxt', '괴물 ' + load + '/' + T.cap);
+    setText('loadTxt', '괴물 ' + load + '/' + g.cap);
     const cls = 'pill load' + (k >= 0.75 ? ' hot' : k >= 0.5 ? ' warn' : '');
     if (hudCache.lc !== cls) { hudCache.lc = cls; $('loadBox').className = cls; }
     setText('coinTxt', String(g.coins));
@@ -620,7 +855,24 @@
     const canSum = !g.over && g.coins >= g.cost() && g.empty().length > 0;
     const sb = $('summonBtn');
     if (hudCache.sb !== canSum) { hudCache.sb = canSum; sb.classList.toggle('pulse', canSum && g.empty().length > 0); sb.setAttribute('aria-disabled', String(!canSum)); sb.style.filter = canSum ? '' : 'grayscale(.6)'; sb.style.opacity = canSum ? '' : '.7'; }
+    // 확률 · 행운 · 신화 버튼
+    const oc = g.oddsCost();
+    const okey = g.oddsLv + '|' + (g.coins >= oc) + '|' + !!g.over;
+    if (hudCache.odds !== okey) {
+      hudCache.odds = okey;
+      $('oddsLv').textContent = 'Lv' + g.oddsLv;
+      $('oddsCost').textContent = oc === Infinity ? '최대' : String(oc);
+      $('oddsBtn').disabled = !!g.over || oc === Infinity || g.coins < oc;
+      const bar = $('oddsBar'); bar.innerHTML = '';
+      g.odds().forEach((p, i) => { if (p > 0) { const s2 = document.createElement('i'); s2.style.width = Math.max(2, p * 100) + '%'; s2.style.background = GR[i].color; bar.appendChild(s2); } });
+      infoKey = '';
+    }
+    setText('cloverTxt', String(g.clovers));
+    const ready = g.readyRecipes().length > 0;
+    const mkey = ready + '|' + g.clovers;
+    if (hudCache.myth !== mkey) { hudCache.myth = mkey; $('mythBtn').classList.toggle('pulse', ready); $('mythDot').hidden = !ready; $('luckBtn').classList.toggle('glow', g.clovers > 0); }
     GR.forEach((gr, i) => {
+      if (i >= T.upgrade.base.length) return;
       const b = $('up' + i), c = g.upCost(i);
       const key = g.lv[i] + '|' + (c === Infinity ? 'max' : c) + '|' + (g.coins >= c);
       if (b.dataset.k !== key) {
@@ -636,10 +888,12 @@
     const box = $('ups');
     box.innerHTML = '';
     GR.forEach((gr, i) => {
+      if (i >= T.upgrade.base.length) return;   // 신화는 전설 강화를 같이 받음
       const b = document.createElement('button');
       b.className = 'up'; b.id = 'up' + i; b.style.setProperty('--c', gr.color);
-      b.setAttribute('aria-label', gr.name + ' 등급 강화');
-      b.innerHTML = '<b>' + gr.name + ' <i>Lv0</i></b><span></span>';
+      const nm = GR.filter((_, j) => T.upGroup[j] === i).map((x) => x.name).join('·');
+      b.setAttribute('aria-label', nm + ' 등급 강화');
+      b.innerHTML = '<b>' + nm + ' <i>Lv0</i></b><span></span>';
       const sp = b.querySelector('span');
       const ci = document.createElement('canvas'); ci.width = 12; ci.height = 12; ci.getContext('2d').drawImage(A.coin, 0, 0); sp.appendChild(ci);
       const bb = document.createElement('b'); bb.style.font = 'inherit'; bb.style.color = 'inherit'; sp.appendChild(bb);
@@ -652,29 +906,32 @@
     const u = sel >= 0 && g.slots[sel] ? g.slots[sel].u : null;
     if (sel >= 0 && !u) sel = -1;
     const mate = u ? g.mateOf(sel) : -1;
-    const key = u ? [sel, u.id, mate >= 0, g.lv[u.g], g.over, !!(u.haste || u.hasteT > 0)].join('|') : 'none|' + (g.wave > 0);
+    const key = u ? [sel, u.id, mate >= 0, g.lv[T.upGroup[u.g]], g.over, !!(u.haste || u.hasteT > 0), g.syn[u.ch] || 0, u.silT > 0].join('|') : 'none|' + (g.wave > 0) + '|' + g.oddsLv;
     if (key === infoKey) return;
     infoKey = key;
     const box = $('info');
     box.innerHTML = '';
     if (!u) {
       const d = document.createElement('div'); d.className = 'hint';
-      d.innerHTML = g.wave > 0
-        ? '친구를 <b>눌러</b> 정보 · 팔기 · <b>같은 친구 · 같은 등급</b>끼리 <b>끌어다 겹치면</b> 한 등급 위 무작위 친구로 합성!'
-        : '<b>소환</b>을 눌러 친구를 불러요. 괴물이 길을 돌면 자동으로 공격해요. 길 위 괴물이 ' + T.cap + '마리가 되면 져요.';
+      d.innerHTML = (g.wave > 0
+        ? '친구를 <b>눌러</b> 정보 · 팔기 · <b>같은 친구 · 같은 등급</b>끼리 <b>끌어다 겹치면</b> 합성! 전설 셋은 <b>신화</b> 레시피로.'
+        : '<b>소환</b>을 눌러 친구를 불러요. 괴물이 길을 돌면 자동으로 공격해요. 길 위 괴물이 ' + g.cap + '마리가 되면 져요.') +
+        '<br><span class="odds">소환 확률 ' + oddsText() + '</span>';
       box.appendChild(d);
       return;
     }
-    const c = CH[u.ch], gr = GR[u.g];
+    const c = CH[u.ch], gr = GR[u.g], M = u.myth != null ? T.recipes[u.myth].myth : null;
     const por = portrait(u.ch); por.className = 'por'; por.style.borderColor = gr.color; por.style.background = gr.glow;
     box.appendChild(por);
     const tx = document.createElement('div'); tx.className = 'txt';
     const dmg = g.unitDmg(u), rate = g.unitRate(u), rng = g.unitRange(u);
     tx.innerHTML = '<div class="nm">' + c.name + ' <span class="gr" style="background:' + gr.color + '">' + gr.name + '</span></div>' +
-      '<div class="ds">공격 ' + fmt(dmg) + ' · 1초에 ' + rate.toFixed(1) + '번' + (u.haste || u.hasteT > 0 ? ' (버프)' : '') + ' · 사거리 ' + rng.toFixed(1) + '칸<br>' + c.desc + ' · 스킬 「' + c.skill.name + '」 ' + c.skill.desc + '</div>';
+      '<div class="ds">' + (u.silT > 0 ? '<b style="color:#8a5fd0">침묵 중</b> · ' : '') + '공격 ' + fmt(dmg) + ' · 1초에 ' + rate.toFixed(1) + '번' + (u.haste || u.hasteT > 0 ? ' (버프)' : '') + ' · 사거리 ' + rng.toFixed(1) + '칸' +
+      (g.syn[u.ch] ? ' · <b>같은 친구 +' + Math.round(g.syn[u.ch] * 100) + '%</b>' : '') + '<br>' +
+      (M ? '<b>신화 「' + M.name + '」</b> ' + M.desc + ' · ' : '') + c.desc + ' · 스킬 「' + c.skill.name + '」 ' + c.skill.desc + '</div>';
     box.appendChild(tx);
     const acts = document.createElement('div'); acts.className = 'acts';
-    if (u.g < GR.length - 1) {
+    if (u.g < T.mergeTop) {
       const mb = document.createElement('button'); mb.className = 'btn small'; mb.id = 'mergeBtn'; mb.textContent = '합성';
       mb.disabled = mate < 0 || !!g.over;
       mb.title = mate < 0 ? '같은 캐릭터 · 같은 등급이 하나 더 있어야 해요' : '';
@@ -688,7 +945,7 @@
     box.appendChild(acts);
   }
 
-  let toastT = 0;
+  let toastT = 0, lastInterest = 0, pickAt = -9;
   function toast(msg) {
     const el = $('toast'); el.textContent = msg; el.classList.add('on');
     clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 1700);
@@ -701,7 +958,7 @@
     el.innerHTML = '';
     el.appendChild(document.createTextNode(big));
     if (small) { const sm = document.createElement('small'); sm.textContent = small; el.appendChild(sm); }
-    el.className = 'go' + (cls === 'boss' ? ' boss' : '');
+    el.className = 'go' + (cls === 'boss' ? ' boss' : cls === 'myth' ? ' myth' : '');
   }
 
   // ── 입력: 누르기 = 고르기, 끌기 = 옮기기 · 합성 ─────────────
@@ -754,6 +1011,9 @@
     const r = g.summon();
     if (!r.ok) { toast(r.why); S.play('nope'); }
   });
+  $('oddsBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); const r = g.oddsUp(); if (!r.ok) { toast(r.why); S.play('nope'); } });
+  $('luckBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); luckScreen(); });
+  $('mythBtn').addEventListener('click', () => { if (!g || phase !== 'play') return; S.unlock(); mythScreen(); });
   $('spdBtn').addEventListener('click', () => { spd = (spd + 1) % speeds.length; $('spdBtn').textContent = '×' + speeds[spd]; });
   $('sndBtn').addEventListener('click', () => { S.on = !S.on; $('sndBtn').setAttribute('aria-pressed', String(S.on)); const r = rec(); r.mute = !S.on; saveRec(r); });
   $('pauseBtn').addEventListener('click', () => { if (phase === 'play') pauseScreen(); });
@@ -775,9 +1035,34 @@
   function btn(id, fn) { const b = sheet.querySelector('#' + id); if (b) b.addEventListener('click', () => { S.unlock(); fn(); }); }
 
   function mmss(t) { t = Math.round(t); return Math.floor(t / 60) + '분 ' + (t % 60) + '초'; }
+  function oddsText() { return g.odds().map((p, i) => (p > 0 ? GR[i].name + ' ' + (Math.round(p * 1000) / 10) + '%' : '')).filter(Boolean).join(' · '); }
+  function chipHtml(keys) {
+    if (!keys.length) return '<span class="sub">변수 칩 없음</span>';
+    return keys.map((k) => '<span class="vchip"><b>' + T.chips[k].name + '</b> ' + T.chips[k].desc + '</span>').join('');
+  }
+  function diffBox() {
+    const r = rec();
+    let h = '<div class="diffs" id="diffs">';
+    T.diffs.forEach((D, i) => {
+      const o = unlocked(r, i), d = (r.d && r.d[D.key]) || {};
+      h += '<button class="diff' + (i === diffSel ? ' on' : '') + '" data-i="' + i + '" style="--c:' + D.color + '"' + (o ? '' : ' disabled') + ' aria-pressed="' + (i === diffSel) + '">' +
+        '<b>' + (o ? '' : '🔒 ') + D.name + '</b><span>' + (o ? D.desc : T.diffs[i - 1].name + ' 클리어하면 열려요') + '</span>' +
+        '<em>' + (d.plays ? '최고 ' + (d.clears ? '클리어' + (d.endless ? ' · 무한 ' + d.endless : '') : d.best + '웨이브') : '기록 없음') + '</em></button>';
+    });
+    h += '</div><div class="vchips" id="vchips"></div>';
+    return h;
+  }
+  function pickDiff(i) {
+    diffSel = i;
+    sheet.querySelectorAll('.diff').forEach((b) => { const on = +b.dataset.i === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const D = T.diffs[i], chips = Core.rollChips(i, nextSeed);
+    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
+  }
   function titleScreen() {
     phase = 'title';
     const r = rec();
+    nextSeed = +Q.get('seed') || ((Date.now() & 0xffffff) | 1);
+    if (!unlocked(r, diffSel)) diffSel = 1;
     open(
       '<h1>치이카와 <em>랜덤</em> 디펜스</h1>' +
       '<div class="sub">들판 토벌대 · 비영리 팬 게임</div>' +
@@ -785,29 +1070,42 @@
       '<div class="rules"><ol>' +
       '<li><b>소환</b>하면 무작위 친구가 무작위 등급으로 자리에 나와요.</li>' +
       '<li>길을 도는 괴물을 알아서 공격해요. 잡으면 <b>동전</b>.</li>' +
-      '<li><b>같은 친구 · 같은 등급</b> 둘을 끌어다 겹치면 한 등급 위 무작위 친구로 <b>합성</b>! 등급은 일반 · 희귀 · 영웅 · 전설.</li>' +
-      '<li>길 위 괴물이 <b>' + T.cap + '</b>마리가 되면 패배. <b>' + T.waves + '웨이브</b> 마지막 보스를 잡으면 클리어.</li>' +
+      '<li><b>같은 친구 · 같은 등급</b> 둘을 겹치면 한 등급 위로 <b>합성</b>!</li>' +
+      '<li>괴물은 웨이브마다 <b>특성</b>(고속·장갑·재생·분열·부활)이 바뀌어요. 보스는 <b>기술</b>을 써요.</li>' +
+      '<li><b>전설 셋</b>을 모으면 <b>신화</b> 레시피! 길 위 괴물이 한도에 닿으면 패배, <b>' + T.waves + '웨이브</b> 보스를 잡으면 클리어.</li>' +
       '</ol></div>' +
+      diffBox() +
       '<div class="row-btns"><button class="btn" id="startBtn">시작하기</button><button class="btn sky" id="codexBtn">도감 · 규칙</button></div>' +
-      '<div class="rec">' + (r.plays ? '최고 웨이브 ' + (r.best || 0) + ' · 클리어 ' + (r.clears || 0) + '번' + (r.bestTime ? ' (가장 빨리 ' + mmss(r.bestTime) + ')' : '') + ' · ' + r.plays + '판' : '첫 판이에요!') + '</div>' +
-      '<p class="sub notice">캐릭터 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 괴물 · 길 · 효과 · 소리는 직접 만들었어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
+      '<div class="rec">' + (r.plays ? '모든 난이도 ' + r.plays + '판 · 신화 레시피 ' + found(r).length + '/' + T.recipes.length + ' 발견' : '첫 판이에요!') + '</div>' +
+      '<p class="sub notice">캐릭터 · 특성 괴물 · 보스 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 일반 괴물 · 길 · 효과 · 소리는 직접 만들었어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
     );
     parade($('parade'), T.chars.map((c) => c.id));
+    sheet.querySelectorAll('.diff').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.unlock(); S.play('pick'); pickDiff(+b.dataset.i); } }));
+    pickDiff(diffSel);
     btn('startBtn', start);
     btn('codexBtn', () => codexScreen(false));
   }
   function codexScreen(inGame) {
-    const odds = T.summonOdds;
+    const odds = g ? g.odds() : T.odds.table[0], top = T.odds.table[T.odds.table.length - 1];
     let rows = '';
     GR.forEach((gr, i) => {
-      rows += '<tr><td><span class="gname" style="background:' + gr.color + '">' + gr.name + '</span></td><td>×' + gr.dmg + '</td><td>' + (odds[i] ? Math.round(odds[i] * 1000) / 10 + '%' : '합성만') + '</td><td>' + T.sell[i] + '</td></tr>';
+      const how = i >= 4 ? '레시피만' : (odds[i] ? Math.round(odds[i] * 1000) / 10 + '%' : '합성') + (top[i] && top[i] !== odds[i] ? ' → ' + Math.round(top[i] * 1000) / 10 + '%' : '');
+      rows += '<tr><td><span class="gname" style="background:' + gr.color + '">' + gr.name + '</span></td><td>×' + gr.dmg + '</td><td>' + how + '</td><td>' + T.sell[i] + '</td></tr>';
     });
+    let traits = '';
+    for (const k in TR) traits += '<li><b>' + TR[k].name + '</b> ' + TR[k].desc + ' <small>(' + TR[k].from + '웨이브부터)</small></li>';
+    let bosses = '';
+    T.bosses.forEach((b, i) => { bosses += '<li><b>' + b.name + '</b> ' + (i + 1) * T.bossEvery + '웨이브 · 「' + b.skill + '」 ' + b.desc + '</li>'; });
     open(
       '<h2>도감 · 규칙</h2>' +
       '<div class="codex" id="codex"></div>' +
-      '<table class="grades"><tr><th>등급</th><th>공격력</th><th>소환 확률</th><th>팔면</th></tr>' + rows + '</table>' +
-      '<p class="sub">강화는 등급마다 따로 — 한 단계에 그 등급 친구 모두 공격력 +' + Math.round(T.upgrade.dmg * 100) + '%. 합성하면 캐릭터가 무작위로 바뀌니까 등급에 붙여 뒀어요.<br>' +
-      '보스 「' + T.enemy.kinds.boss.name + '」 는 ' + T.bossEvery + '웨이브마다 와요. 길 위에선 괴물 ' + T.bossWeight + '마리로 세요.<br>' +
+      '<table class="grades"><tr><th>등급</th><th>공격력</th><th>소환 확률 (최대 Lv)</th><th>팔면</th></tr>' + rows + '</table>' +
+      '<h2>괴물 특성</h2><ul class="rules mini">' + traits + '</ul>' +
+      '<h2>보스 기술</h2><ul class="rules mini">' + bosses + '<li>기술 전엔 멈춰 서서 「준비」 — 침묵은 노리는 칸이 보라색으로 깜빡여요. 무한 모드에선 차례로 돌아요.</li></ul>' +
+      '<p class="sub">강화는 등급마다 따로 — 한 단계에 그 등급 친구 모두 공격력 +' + Math.round(T.upgrade.dmg * 100) + '% (신화는 전설 강화를 같이 받아요).<br>' +
+      '<b>확률</b>: 동전으로 소환 등급 확률을 올려요(Lv' + (T.odds.table.length - 1) + '까지). <b>행운</b>: 보스를 잡으면 클로버 ' + T.luck.boss + '개 — 희귀 ' + T.luck.p[0] * 100 + '% · 영웅 ' + T.luck.p[1] * 100 + '% · 전설 ' + T.luck.p[2] * 100 + '% 확정 도전, 실패마다 +' + T.luck.pity * 100 + '%.<br>' +
+      '보스를 잡으면 카드 셋 중 하나(고정 2 + 도박 1). 웨이브가 넘어갈 때 동전 ' + T.interest.rate * 100 + '% 이자(최대 ' + T.interest.cap + '). 같은 친구 2명 +10% · 4명 +25%.<br>' +
+      '보스는 길 위에서 괴물 ' + T.bossWeight + '마리로 세요.<br>' +
       '폰: 소환 버튼 · 끌어서 합성 · 눌러서 팔기. 데스크톱: 스페이스 = 소환 · P = 멈춤 · Esc = 고르기 취소</p>' +
       '<div class="row-btns"><button class="btn" id="backBtn">' + (inGame ? '계속하기' : '돌아가기') + '</button></div>'
     );
@@ -823,7 +1121,7 @@
   }
   function pauseScreen() {
     phase = 'pause';
-    open('<h2>잠깐 쉬어요</h2><p class="sub">웨이브 ' + g.wave + ' · 동전 ' + g.coins + '</p>' +
+    open('<h2>잠깐 쉬어요</h2><p class="sub">' + T.diffs[g.diff].name + ' · 웨이브 ' + g.wave + ' · 동전 ' + g.coins + ' · 클로버 ' + g.clovers + '</p>' + (g.chips.length ? '<div class="vchips">' + chipHtml(g.chips) + '</div>' : '') +
       '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button></div>');
     btn('resumeBtn', () => { close(); phase = 'play'; });
     btn('codexBtn', () => codexScreen(true));
@@ -831,58 +1129,125 @@
   }
   function endScreen(e) {
     if (phase !== 'end') return;
-    const r = rec();
-    r.plays = (r.plays || 0) + 1;
-    r.best = Math.max(r.best || 0, e.wave);
-    if (e.win) { r.clears = (r.clears || 0) + 1; r.bestTime = Math.min(r.bestTime || 1e9, Math.round(g.time)); }
+    const r = rec(), D = T.diffs[g.diff], d = drec(r, g.diff);
+    const wasLocked = g.diff + 1 < T.diffs.length && !unlocked(r, g.diff + 1);
+    // 무한 모드에서 진 판은 클리어 기록에 이미 들어 있으므로 판 수를 다시 세지 않음
+    if (!e.endless) { r.plays = (r.plays || 0) + 1; d.plays = (d.plays || 0) + 1; }
+    d.best = Math.max(d.best || 0, e.wave);
+    if (e.endless) d.endless = Math.max(d.endless || 0, e.wave);
+    if (e.win) { d.clears = (d.clears || 0) + 1; d.bestTime = Math.min(d.bestTime || 1e9, Math.round(g.time)); }
     saveRec(r);
-    const isBest = e.win && r.bestTime === Math.round(g.time);
+    const opened = e.win && wasLocked && unlocked(r, g.diff + 1) ? T.diffs[g.diff + 1].name : '';
+    const isBest = e.win && d.bestTime === Math.round(g.time);
     open(
-      (e.win ? '<h1>클리어!</h1><div class="sub">들판에 평화가 왔어요</div>' : '<h1>패배…</h1><div class="sub">' + e.why + '</div>') +
+      (e.win ? '<h1>클리어!</h1><div class="sub">' + D.name + ' · 들판에 평화가 왔어요' + (opened ? ' · <b>「' + opened + '」 열림!</b>' : '') + '</div>'
+        : e.endless ? '<h1>무한 모드 끝</h1><div class="sub">' + D.name + ' · ' + e.wave + '웨이브까지 버텼어요 · ' + e.why + '</div>'
+        : '<h1>패배…</h1><div class="sub">' + D.name + ' · ' + e.why + '</div>') +
       '<div class="parade" id="parade"></div>' +
       '<div class="stats">' +
-      '<div><b>' + e.wave + '/' + T.waves + '</b><span>웨이브</span></div>' +
+      '<div><b>' + e.wave + (e.endless ? '' : '/' + T.waves) + '</b><span>' + (e.endless ? '무한 웨이브' : '웨이브') + '</span></div>' +
       '<div><b>' + g.kills + '</b><span>토벌한 괴물</span></div>' +
       '<div><b>' + mmss(g.time) + '</b><span>' + (isBest ? '새 최고 기록!' : '버틴 시간') + '</span></div>' +
       '<div><b style="color:' + (g.bestGrade >= 0 ? GR[g.bestGrade].color : 'inherit') + '">' + (g.bestGrade >= 0 ? GR[g.bestGrade].name : '-') + '</b><span>최고 등급</span></div>' +
       '</div>' +
-      '<div class="rec">최고 웨이브 ' + r.best + ' · 클리어 ' + (r.clears || 0) + '번' + (r.bestTime ? ' · 가장 빠른 클리어 ' + mmss(r.bestTime) : '') + ' (이 브라우저에만 저장)</div>' +
-      '<div class="row-btns"><button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>'
+      '<div class="rec">' + D.name + ' 최고 웨이브 ' + d.best + ' · 클리어 ' + (d.clears || 0) + '번' + (d.bestTime ? ' · 가장 빠른 클리어 ' + mmss(d.bestTime) : '') + (d.endless ? ' · 무한 ' + d.endless + '웨이브' : '') + ' (이 브라우저에만 저장)</div>' +
+      '<div class="row-btns">' + (e.win ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>'
     );
+    btn('endlessBtn', () => { if (g.goEndless()) { close(); phase = 'play'; onEvents(); } });
     // 판에 남은 친구들
     const ids = [];
     g.slots.forEach((sl) => { if (sl.u && ids.length < 8) ids.push(sl.u.ch); });
     parade($('parade'), ids.length ? ids : ['chiikawa', 'hachiware', 'usagi'], e.win ? 'joy' : 'cry');
-    btn('againBtn', start);
+    btn('againBtn', () => { nextSeed = +Q.get('seed') || ((Date.now() & 0xffffff) | 1); start(); });
     btn('homeBtn', titleScreen);
+  }
+  // ── 3택 보상 (보스를 잡은 뒤) ──
+  function pickScreen() {
+    if (!g.pick) return;
+    phase = 'pick';
+    let h = '<h2>보상 고르기</h2><p class="sub">셋 중 하나 — 왼쪽 둘은 확정, 오른쪽은 도박</p><div class="cards3">';
+    g.pick.forEach((c, i) => {
+      h += '<button class="rcard' + (c.gamble ? ' gam' : '') + '" id="card' + i + '"><em>' + (c.gamble ? '도박 ' + Math.round(c.p * 100) + '%' : '확정') + '</em><b>' + c.name + '</b><span>' + c.desc + '</span></button>';
+    });
+    open(h + '</div>');
+    g.pick.forEach((_, i) => btn('card' + i, () => { g.choose(i); close(); phase = 'play'; onEvents(); }));
+  }
+  // ── 행운 소환 (클로버) ──
+  function luckScreen(msg) {
+    if (phase === 'play') phase = 'pause';
+    let h = '<h2>행운 소환</h2><p class="sub">클로버 <b>' + g.clovers + '</b>개 · 하나로 그 등급 「확정」 에 도전 · 실패할 때마다 +' + Math.round(T.luck.pity * 100) + '% (성공하면 처음으로)</p><div class="luck">';
+    T.luck.grades.forEach((gi, i) => {
+      const p = g.luckP(i);
+      h += '<div class="lrow" style="--c:' + GR[gi].color + '"><b class="gname" style="background:' + GR[gi].color + '">' + GR[gi].name + '</b><span class="lp">' + Math.round(p * 100) + '%' + (g.pity[i] ? ' <small>(+' + Math.round(g.pity[i] * 100) + ')</small>' : '') + '</span>' +
+        '<button class="btn small" id="luck' + i + '"' + (g.clovers < 1 || g.over ? ' disabled' : '') + '>도전 🍀1</button></div>';
+    });
+    h += '</div><p class="lmsg" id="lmsg">' + (msg || (g.empty().length ? '' : '빈칸이 있어야 해요')) + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
+    open(h);
+    T.luck.grades.forEach((gi, i) => btn('luck' + i, () => {
+      const r = g.gamble(i);
+      if (!r.ok) { S.play('nope'); luckScreen(r.why); return; }
+      luckScreen(r.win ? '<b style="color:' + GR[gi].color + '">성공! ' + GR[gi].name + ' ' + CH[g.slots[r.slot].u.ch].name + '</b>' : '꽝… 다음엔 ' + Math.round(g.luckP(i) * 100) + '%');
+      onEventsSound();
+    }));
+    btn('resumeBtn', () => { close(); phase = 'play'; });
+  }
+  // ── 신화 레시피 도감 ──
+  function mythScreen(msg) {
+    if (phase === 'play') phase = 'pause';
+    const r = rec(), F = found(r);
+    let h = '<h2>신화 레시피</h2><p class="sub">서로 다른 <b>전설</b> 셋 → 신화 하나. 판에 있는 전설 재료는 이름이 보여요. 빠진 재료는 <b>남는 전설 + 클로버 ' + T.luck.swap + '개</b>로 바꿀 수 있어요.</p><div class="recipes">';
+    T.recipes.forEach((R, i) => {
+      const N = g.recipeNeed(i), known = F.includes(i), ready = !N.miss.length;
+      const onBoard = (ch) => !N.miss.includes(ch);
+      const ing = R.need.map((ch) => (known || onBoard(ch) ? '<span class="ing' + (onBoard(ch) ? ' have' : '') + '">' + (onBoard(ch) ? '✓ ' : '') + '전설 ' + CH[ch].name + '</span>' : '<span class="ing">???</span>')).join('<i>+</i>');
+      h += '<div class="recipe' + (ready ? ' ready' : '') + '"><div class="rhead" id="rpor' + i + '"></div><div class="rbody"><b>' + (known ? '신화 ' + CH[R.need[0]].name + ' 「' + R.myth.name + '」' : '??? 신화') + '</b>' +
+        '<span class="rdesc">' + (known ? R.myth.desc : '만들면 알 수 있어요') + '</span><div class="ings">' + ing + '</div>' +
+        '<div class="ract">' + (ready ? '<button class="btn small pink" id="craft' + i + '"' + (g.over ? ' disabled' : '') + '>만들기!</button>'
+          : '<button class="btn small" id="swap' + i + '"' + (N.spare.length && g.clovers >= T.luck.swap && !g.over ? '' : ' disabled') + '>빠진 재료 채우기 🍀' + T.luck.swap + '</button><small>' + (N.spare.length ? '남는 전설 ' + N.spare.length : '남는 전설 없음') + ' · 빠짐 ' + N.miss.length + '</small>') +
+        '</div></div></div>';
+    });
+    h += '</div><p class="lmsg">' + (msg || '') + '</p><div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button></div>';
+    open(h);
+    T.recipes.forEach((R, i) => {
+      const box = $('rpor' + i);
+      if (F.includes(i)) { const p = portrait(R.need[0], 46); p.className = 'myth-por'; box.appendChild(p); } else box.textContent = '?';
+      btn('craft' + i, () => { const o = g.craft(i); if (o.ok) { close(); phase = 'play'; onEvents(); } else mythScreen(o.why); });
+      btn('swap' + i, () => { const o = g.swapFor(i); if (!o.ok) S.play('nope'); onEventsSound(); mythScreen(o.ok ? '바꿨어요!' : o.why); });
+    });
+    btn('resumeBtn', () => { close(); phase = 'play'; });
+  }
+  // 멈춘 동안 생긴 사건: 소리만 내고 판 연출은 다시 시작할 때 (덮개 뒤라 안 보이므로)
+  function onEventsSound() {
+    for (const e of g.ev) { if (e.type === 'gamble') S.play(e.win ? 'luckwin' : 'lucklose'); if (e.type === 'swap') S.play('luckwin'); }
   }
 
   function start() {
-    const seed = +Q.get('seed') || undefined;
-    g = new Core.Game({ seed });
+    const seed = nextSeed || +Q.get('seed') || undefined;
+    nextSeed = 0;
+    g = new Core.Game({ seed, diff: diffSel });
     view.an.clear(); txtAt.clear(); view.fx = []; view.texts = []; view.flyGhosts = []; view.cards = [];
-    sel = -1; drag = null; hudCache.sb = null; infoKey = '';
-    GR.forEach((_, i) => { $('up' + i).dataset.k = ''; });
+    sel = -1; drag = null; hudCache.sb = null; hudCache.odds = null; hudCache.myth = null; infoKey = ''; view.warn = null; view.bigHit.clear(); lastInterest = 0;
+    T.upgrade.base.forEach((_, i) => { $('up' + i).dataset.k = ''; });
     close();
     phase = 'play';
     acc = 0;
-    toast('소환을 눌러 친구를 불러요!');
+    toast(T.diffs[g.diff].name + ' — 소환을 눌러 친구를 불러요!');
   }
 
   // ── 시작 ──────────────────────────────────────────────────
-  const coinIcons = [$('coinIco'), document.querySelector('#summonBtn .cost canvas')];
+  const coinIcons = [$('coinIco'), document.querySelector('#summonBtn .cost canvas'), document.querySelector('#oddsBtn .tc canvas')];
   coinIcons.forEach((c) => { const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(A.coin, 0, 0); });
   buildUps();
   if (rec().mute) { S.on = false; $('sndBtn').setAttribute('aria-pressed', 'false'); }
   if (speeds[0] !== 1) $('spdBtn').textContent = '×' + speeds[0];
-  A.loadChars(T.chars, () => {
+  A.loadChars(T.chars, () => MON.load(() => {
     g = new Core.Game({ seed: 1 });   // 시작 화면 뒤에 빈 판을 보여 주려고
     fit();
     titleScreen();
     hudTick();
     requestAnimationFrame(frame);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); });
-  });
+  }));
 
   // 확인용 (play_check.py 가 읽기만 함)
   CD.test = {
@@ -903,6 +1268,14 @@
     // 확인용(tools/play_check.py): 칸 i 에 친구를 바로 놓기 · 그 친구의 지금 몸짓(idle·attack·skill)
     put(i, ch, gr) { g.slots[i].u = g.newUnit(ch, gr || 0); g.emit('summon', { slot: i, ch, g: gr || 0, cost: 0 }); return true; },
     mode(i) { const u = g.slots[i] && g.slots[i].u; return u ? an(u).mode : null; },
+    // v2 확인용: 판을 원하는 상황으로 (난이도 판 깨기를 기다리지 않고 보스·특성·신화 장면을 보려고)
+    game: () => g,
+    jumpWave(w) { g.wave = w - 1; g.tWave = 0.01; g.planWave(w); return true; },
+    spawnTrait(t, n) { for (let k = 0; k < (n || 1); k++) g.spawn({ k: 'blob', t }, 1 + k * 0.6); return true; },
+    spawnBoss(bt, at) { const w = (T.bosses.findIndex((b) => b.key === bt) + 1) * T.bossEvery; const keep = g.wave; g.wave = w; const e = g.spawn({ k: 'boss', t: null }, at || 2); g.wave = keep; e.bs.t = 1.5; return true; },
+    monReady: () => MON.ready,
+    seen: () => Object.assign({}, seen),
+    clear() { g.enemies = []; g.spawnQ = []; return true; },
     // 친구 그림을 다 받았는지 · 칸 위 키(도트) · 맞은 자리 효과 · 감정 수
     charInfo(id) { const C = A.char[id]; return { real: C.real, idle: C.idle.length, attack: C.attack.length, skill: C.skill.length, shot: !!C.shot, fx: !!C.fx, hit: !!C.hit, emo: Object.keys(C.emo || {}).length, h: C.idle[0].h, k: C.idle[0].k || 1, portraitW: C.portrait.w }; },
   };

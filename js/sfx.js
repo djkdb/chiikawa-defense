@@ -68,6 +68,21 @@
     wave: { gap: 0.3, f() { tone(N(67), 0.1, { type: 'triangle', vol: 0.09 }); tone(N(72), 0.14, { type: 'triangle', vol: 0.09, at: 0.1 }); } },
     // 보스 — 낮은 두 번 쿵쿵
     boss: { gap: 0.5, f() { [0, 0.28, 0.56].forEach((t, i) => tone(N(i === 2 ? 43 : 40), 0.24, { type: 'square', vol: 0.09, at: t, to: N(34) })); } },
+    // ── v2: 특성 · 보스 기술 · 신화 · 행운 (전부 음높이 있는 파형, 잡음 없음) ──
+    tink: { gap: 0.12, f() { tone(N(98), 0.04, { type: 'square', vol: 0.03 }); tone(N(103), 0.05, { type: 'triangle', vol: 0.03, at: 0.03 }); } },   // 장갑에 막힘
+    revive: { gap: 0.2, f() { [60, 64, 67, 72, 76].forEach((n, i) => tone(N(n), 0.1, { type: 'sine', vol: 0.06, at: i * 0.06 })); } },
+    split: { gap: 0.12, f() { tone(N(79), 0.06, { type: 'sine', vol: 0.07, to: N(72) }); tone(N(84), 0.06, { type: 'sine', vol: 0.06, at: 0.06, to: N(77) }); } },
+    // 보스 기술 예고 — 낮게 두 번 올라가는 경고음
+    warn: { gap: 0.4, f() { [0, 0.22].forEach((t) => tone(N(57), 0.16, { type: 'square', vol: 0.06, at: t, to: N(64) })); } },
+    silence: { gap: 0.4, f() { tone(N(76), 0.3, { type: 'triangle', vol: 0.08, to: N(52) }); tone(N(71), 0.3, { type: 'sine', vol: 0.05, at: 0.05, to: N(47) }); } },
+    bsummon: { gap: 0.4, f() { [55, 59, 62, 67, 71].forEach((n, i) => tone(N(n), 0.07, { type: 'square', vol: 0.04, at: i * 0.05 })); } },
+    bheal: { gap: 0.4, f() { [72, 76, 79, 84].forEach((n, i) => tone(N(n), 0.18, { type: 'sine', vol: 0.06, at: i * 0.08 })); } },
+    shuffle: { gap: 0.4, f() { [79, 74, 81, 72, 83, 76].forEach((n, i) => tone(N(n), 0.05, { type: 'square', vol: 0.04, at: i * 0.045 })); } },
+    luckwin: { gap: 0.1, f() { [84, 88, 91, 96].forEach((n, i) => tone(N(n), 0.12, { type: 'triangle', vol: 0.07, at: i * 0.06 })); } },
+    lucklose: { gap: 0.1, f() { tone(N(67), 0.12, { type: 'triangle', vol: 0.07 }); tone(N(62), 0.18, { type: 'triangle', vol: 0.06, at: 0.12 }); } },
+    stun: { gap: 0.2, f() { tone(N(88), 0.08, { type: 'square', vol: 0.04 }); tone(N(81), 0.14, { type: 'triangle', vol: 0.06, at: 0.06 }); } },
+    nova: { gap: 0.3, f() { [72, 79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.25, { type: 'triangle', vol: 0.05, at: i * 0.03 })); tone(N(48), 0.4, { type: 'sine', vol: 0.1 }); } },
+    myth: { gap: 0.5, f() { [72, 76, 79, 83, 86, 91, 95, 98].forEach((n, i) => tone(N(n), 0.25, { type: i % 2 ? 'triangle' : 'square', vol: 0.045, at: 0.15 + i * 0.07 })); tone(N(48), 0.9, { type: 'triangle', vol: 0.1, at: 0.15 }); tone(N(55), 0.9, { type: 'sine', vol: 0.06, at: 0.15 }); } },
     win: { gap: 1, f() { [72, 76, 79, 84, 79, 84, 88, 91].forEach((n, i) => tone(N(n), 0.18, { type: 'square', vol: 0.06, at: i * 0.12 })); tone(N(48), 1.0, { type: 'triangle', vol: 0.1, at: 0.84 }); } },
     lose: { gap: 1, f() { [67, 64, 60, 55].forEach((n, i) => tone(N(n), 0.26, { type: 'triangle', vol: 0.1, at: i * 0.2 })); } },
   };
