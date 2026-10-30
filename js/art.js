@@ -356,8 +356,9 @@
   const sparkle = (col) => paint(7, 7, [col, '#ffffff'], (x) => { x.fillStyle = col; x.fillRect(3, 0, 1, 7); x.fillRect(0, 3, 7, 1); x.fillStyle = '#ffffff'; x.fillRect(3, 3, 1, 1); x.fillRect(2, 2, 3, 3); x.fillStyle = col; x.fillRect(2, 2, 1, 1); x.fillRect(4, 2, 1, 1); x.fillRect(2, 4, 1, 1); x.fillRect(4, 4, 1, 1); });
 
   // ── 캐릭터 (사람이 준 시트에서 자른 PNG) ───────────────────
-  // CHAR[id] = { portrait, idle[], attack[], skill[], shot, fx, joy, real } — 프레임 = { img, w, h, ax, ay(발 기준점, 도트), k }
-  // 빠진 동작은 idle 로 대신합니다(chars_manifest.py 가 잘리거나 깨진 프레임을 뺀 자리).
+  // CHAR[id] = { portrait, idle[], attack[], skill[], shot, fx, hit, emo{}, real } — 프레임 = { img, w, h, ax, ay(발 기준점, 도트), k }
+  // 여덟 명 모두 초록 시트 도트(_chiikawa_tools/slice_green.py): hit(보통 공격이 맞은 자리) · emo(감정 8: joy·cry·love …)가 있고,
+  // shot 에 aim(날아가는 방향으로 돌림) · sz(긴 변 도트)가 붙습니다. 빠진 동작은 idle 로 대신합니다.
   const CHAR = {};
   function loadChars(list, done) {
     const files = window.CD_CHAR_FILES || {};
@@ -365,12 +366,12 @@
     list.forEach((c) => {
       const m = files[c.id];
       if (!m) { CHAR[c.id] = placeholder(c); return; }
-      const C = (CHAR[c.id] = { real: true, idle: [], attack: [], skill: [], portrait: null, shot: null, fx: null, joy: null });
+      const C = (CHAR[c.id] = { real: true, idle: [], attack: [], skill: [], portrait: null, shot: null, fx: null, hit: null, emo: {} });
       const one = (e, put) => jobs.push(new Promise((ok) => {
         const im = new Image();
-        // k: 그림 1px 이 몇 도트인지(치이카와 고해상도만 1 이 아님) — 크기·기준점을 도트로 바꿔 두면 그리는 쪽은 친구마다 같음
+        // k: 그림 1px 이 몇 도트인지(초록 시트 도트는 0.5) — 크기·기준점을 도트로 바꿔 두면 그리는 쪽은 친구마다 같음
         const k = e.k || 1;
-        im.onload = () => { put({ img: im, w: e.w * k, h: e.h * k, ax: e.ax * k, ay: e.ay * k, k }); ok(); };
+        im.onload = () => { put({ img: im, w: e.w * k, h: e.h * k, ax: e.ax * k, ay: e.ay * k, k, aim: !!e.aim, sz: e.sz || 0 }); ok(); };
         im.onerror = () => ok();   // 한 장 못 불러오면 그 프레임만 빠짐
         im.src = 'assets/chars/' + e.f;
       }));
@@ -378,7 +379,8 @@
       one(m.portrait, (f) => (C.portrait = f));
       if (m.shot) one(m.shot, (f) => (C.shot = f));
       if (m.fx) one(m.fx, (f) => (C.fx = f));
-      if (m.joy) one(m.joy, (f) => (C.joy = f));
+      if (m.hit) one(m.hit, (f) => (C.hit = f));
+      for (const nm in m.emo || {}) one(m.emo[nm], (f) => (C.emo[nm] = f));
     });
     Promise.all(jobs).then(() => {
       list.forEach((c) => {
@@ -398,7 +400,7 @@
       blob(x, ell(14, 15, 11.4, 11), '#fffaf0', 3);
     });
     const f = { img, w: 28, h: 28, ax: 14, ay: 27 };
-    return { real: false, label: c.name[0], idle: [f], attack: [f], skill: [f], portrait: f, shot: null, fx: null };
+    return { real: false, label: c.name[0], idle: [f], attack: [f], skill: [f], portrait: f, shot: null, fx: null, hit: null, emo: {} };
   }
   // 정수 배로 키운 판을 캐시 (작게 그릴 때 부드럽게 줄여도 도트 폭이 고르게 보이도록)
   const bigCache = new Map();

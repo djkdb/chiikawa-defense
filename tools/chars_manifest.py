@@ -3,17 +3,11 @@
   python3 portfolio_src/chiikawa-defense/tools/chars_manifest.py          # chars.js 다시 쓰기
   python3 portfolio_src/chiikawa-defense/tools/chars_manifest.py --board /tmp/frames.png  # 고른 프레임 판도
 
-왜 손으로 고르나: 시트를 칸 단위로 자르다 보니 이웃 칸과 겹쳐 잘린 프레임(모몽가 꼬리 · 쿠리만쥬 skill_2·3 ·
-하치와레 귀가 빠진 skill_2)이 섞여 있습니다. 자동 판정(가장자리 불투명 비율)은 둥근 몸·갈기와 잘린 면을 못 가려서,
-눈으로 본 결과를 아래 PICK 에 적어 둡니다. 빠진 동작은 게임이 idle_0 · portrait 로 대신합니다.
-
-하는 일
-  1) 위 가장자리에 붙은 납작한 부스러기(윗줄 칸에서 넘어온 1~3줄짜리 선) 지우기 — 원본 PNG 를 고칩니다
-  2) 발 기준점 계산: 아래 6줄 불투명 픽셀의 가운데 x · 맨 아래 y. 효과(별·불꽃)가 옆에 붙은 프레임도 몸이 칸 가운데 서게
-  3) chars.js 에 {파일, 크기, 기준점} 목록을 씁니다 — 게임은 여기 적힌 파일만 불러옵니다(없는 파일 404 방지)
-  4) 치이카와만 고해상도 — assets/chars/chiikawa/ 는 portfolio_src/_chiikawa_tools/slice_hd.py 가 큰 시트에서 잘라 넣고
-     frames.json 을 씁니다. 여기서는 그 목록을 옮겨 적기만 합니다(PNG 를 고치지 않음).
-     k = 그림 1px 이 판의 몇 도트인지(다른 친구는 1, 치이카와 도트 0.5 · 초상 64/332) — 게임은 w·h·ax·ay 에 k 를 곱해 같은 키로 그림
+여덟 명 모두 사람이 새로 만든 초록 바탕 시트에서 portfolio_src/_chiikawa_tools/slice_green.py 가 잘라 넣은 56칸 도트입니다
+(assets/chars/<이름>/ 의 PNG · frames.json). 여기서는 frames.json 에서 디펜스가 쓸 것을 골라 옮겨 적기만 합니다(PNG 를 고치지 않음).
+  k = 그림 1px 이 판의 몇 도트인지(몸 0.5 · 초상 64/폭) — 게임은 w·h·ax·ay 에 k 를 곱해 같은 키로 그림.
+  친구마다 「공격 이펙트」 줄(fx_0..7, 캐릭터 색)이 있어 투사체(shot) · 맞은 자리(hit) · 스킬 터짐(fx)을 거기서 고르고,
+  감정 8개(emo)는 결과 화면에 씀.
 """
 import argparse
 import json
@@ -24,129 +18,41 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 CH = ROOT / "assets" / "chars"
 
-# 눈으로 고른 프레임. shot = 투사체로 날릴 효과만 있는 프레임, fx = 스킬이 터질 때 맞은 자리에 띄울 효과 프레임
-PICK = {
-    # skill_2 는 파란 귀가 빠져 치이카와처럼 보임 · hit_0~2 도 같은 문제(게임은 hit 안 씀)
-    "hachiware": {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 3], "shot": "attack_4", "fx": "skill_4"},
-    "usagi":     {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 2, 3, 4], "shot": "attack_4", "fx": None},
-    # skill_3 은 불꽃 + 잘린 몸 조각 → 효과는 attack_4 불꽃을 크게
-    "shisa":     {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 2, 4], "shot": "attack_4", "fx": "attack_4"},
-    # idle_1~3 · skill_1·3·4 는 꼬리(파란 털)가 잘림 · attack_0 은 윗줄 부스러기
-    "momonga":   {"idle": [0, 4], "attack": [1, 2, 3], "skill": [0], "shot": "attack_4", "fx": "skill_2"},
-    "rakko":     {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 2, 3, 4], "shot": "attack_4", "fx": None},
-    "pungdengi": {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 2, 3], "shot": "attack_4", "fx": "skill_4"},
-    # skill_2·3 깨짐(반쪽 몸)
-    "kurimanju": {"idle": [0, 1, 2, 3, 4], "attack": [0, 1, 2, 3], "skill": [0, 1, 4], "shot": "attack_4", "fx": None},
-}
+# 시트에서 고른 것 (여덟 장 칸 배치가 같아 번호가 같은 뜻)
+#   공격 줄: 0~2 무기를 뒤로 들기 · 3 아래로 휘두름(궤적) · 4 들어 올림 · 5 오른쪽 베기(궤적) · 6 찌르기 · 7 거두기
+#     → 칸 위에선 짧게(0.4초 안) 휘두름 → 들기 → 베기 → 찌르기만
+#   스킬 줄: 2 회오리 무기 · 3 바람 · 6 빛 고리 · 7 금빛 기운 (0 반짝 · 1 음표 · 4 큰 하트 · 5 응원은 공격 느낌이 아니라 뺌)
+#   공격 이펙트 줄: 0 별 터짐 · 1 초승달 베기 · 2 폭발 · 3 소용돌이 · 4 반짝이 · 5 돌진 · 6 원 · 7 솟구침
+GREEN = ["chiikawa", "hachiware", "usagi", "shisa", "momonga", "rakko", "pungdengi", "kurimanju"]
+G_ATTACK = [3, 4, 5, 6]
+G_SKILL = [2, 3, 6, 7]
+G_SHOT = 5            # 돌진(오른쪽으로 날아가는 혜성) — 게임이 날아가는 방향으로 돌림(aim)
+G_HIT = 0             # 별 터짐 — 보통 공격이 맞은 자리
+# 스킬이 터질 때: 친구 성격에 맞춰 — 콩(폭발) · 물결(소용돌이) · 치명 베기(초승달) · 불(솟구침) · 바람(소용돌이) ·
+#   랏코 보스 일격(폭발) · 풍뎅이 독 잎(소용돌이 잎) · 쿠리만쥬 응원(원 — 맥주잔)
+G_FX = {"chiikawa": 2, "hachiware": 3, "usagi": 1, "shisa": 7, "momonga": 3, "rakko": 2, "pungdengi": 3, "kurimanju": 6}
+SHOT_DOTS = 18        # 투사체 긴 변(도트) — 돌진 그림은 가로로 길어 다른 친구 투사체(13)보다 조금 크게
+PORTRAIT_DOTS = 64     # 판넬·도감·소환 카드의 초상 폭(도트) — 옛 시트 초상(61~73칸) 때와 같은 크기
 
 
-def clean_top(im):
-    """머리 위에 떠 있는 납작한 부스러기(윗줄 칸에서 넘어온 선)를 지웁니다. 지운 픽셀 수를 돌려줌.
-    기준: 맨 위 3줄 안에서 시작하고, 몸과 떨어져 있고, 높이가 3줄 이하. 하트·별(높이 5줄 이상)은 남습니다."""
-    w, h = im.size
-    px = im.load()
-    seen = set()
-    removed = 0
-    for y0 in range(min(3, h)):
-        for x0 in range(w):
-            if px[x0, y0][3] < 8 or (x0, y0) in seen:
-                continue
-            comp, stack = [], [(x0, y0)]
-            seen.add((x0, y0))
-            while stack:
-                x, y = stack.pop()
-                comp.append((x, y))
-                for dx in (-1, 0, 1):
-                    for dy in (-1, 0, 1):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen and px[nx, ny][3] >= 8:
-                            seen.add((nx, ny))
-                            stack.append((nx, ny))
-            ys = [p[1] for p in comp]
-            if max(ys) - min(ys) <= 2 and max(ys) <= 5 and len(comp) < w * 4:
-                for x, y in comp:
-                    px[x, y] = (0, 0, 0, 0)
-                removed += len(comp)
-    return removed
-
-
-def clean_pinch(im):
-    """머리에 붙어 버린 윗줄 그림자 조각(연한 회색 렌즈 모양)을 잘라 냅니다. 지운 줄 수를 돌려줌.
-    머리 꼭대기는 아래로 갈수록 넓어지기만 하는데, 그림자 조각은 아래로 좁아졌다가 머리에서 다시 넓어집니다.
-    그래서 맨 위 4줄 안에서 「좁아졌다 → 다시 넓어짐」 이 있고, 좁아지는 줄들이 연한 색이면 그 줄까지 지웁니다."""
-    w, h = im.size
-    px = im.load()
-
-    def row(y):
-        xs = [x for x in range(w) if px[x, y][3] > 100]
-        if not xs:
-            return 0, 255
-        lum = sum(0.3 * px[x, y][0] + 0.59 * px[x, y][1] + 0.11 * px[x, y][2] for x in xs) / len(xs)
-        return len(xs), lum
-
-    R = [row(y) for y in range(min(6, h))]
-    for k in range(1, 4):
-        if k + 1 >= len(R):
-            break
-        if R[k][0] < R[0][0] and R[k + 1][0] > R[k][0] and all(R[j][1] > 175 for j in range(1, k + 1)) and R[k + 1][1] < R[k][1] - 25:
-            for y in range(k + 1):
-                for x in range(w):
-                    px[x, y] = (0, 0, 0, 0)
-            return k + 1
-    return 0
-
-
-def trim(im):
-    bb = im.getbbox()
-    return im.crop(bb) if bb else im
-
-
-def anchor(im, body=True):
-    w, h = im.size
-    a = im.split()[3].load()
-    if not body:
-        return w / 2, h / 2
-    xs = [x for y in range(max(0, h - 6), h) for x in range(w) if a[x, y] > 128]
-    ax = (min(xs) + max(xs)) / 2 if xs else w / 2
-    return round(ax, 1), h
-
-
-def entry(name, fn, body=True, fix=True):
-    p = CH / name / (fn + ".png")
-    im = Image.open(p).convert("RGBA")
-    if fix:
-        n = clean_top(im)
-        k = clean_pinch(im)
-        if n or k:
-            im = trim(im)
-            im.save(p)
-            print(f"  {name}/{fn}: 윗줄 부스러기 {n}px · 붙은 그림자 {k}줄 지움")
-    ax, ay = anchor(im, body)
-    return {"f": f"{name}/{fn}.png", "w": im.width, "h": im.height, "ax": ax, "ay": ay}
-
-
-# 치이카와 고해상도에서 고른 것: 스킬은 포크 반짝 · 모으기 · 하트 포크(큰 하트·방울은 칸을 크게 넘어 뺌)
-HD_PICK = {"idle": None, "attack": None, "skill": [0, 1, 3], "shot": "heart_shot", "fx": "heart_burst"}
-PORTRAIT_DOTS = 64     # 다른 친구 초상(61~73칸)과 같은 크기로 보이게
-
-
-def hd_chiikawa():
-    man = json.loads((CH / "chiikawa" / "frames.json").read_text())
-    F = man["frames"]
-    ent = lambda e: {"f": "chiikawa/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["ax"], "ay": e["ay"], "k": e["k"]}
-    d = {}
-    for k in ("idle", "attack", "skill"):
-        idx = HD_PICK[k]
-        d[k] = [ent(e) for e in (F[k] if idx is None else [F[k][i] for i in idx])]
-    for k in ("shot", "fx"):
-        e = man["fx"][HD_PICK[k]]
-        d[k] = {"f": "chiikawa/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["w"] / 2, "ay": e["h"] / 2, "k": e["k"]}
+def green(nm):
+    man = json.loads((CH / nm / "frames.json").read_text())
+    F = {act: {e["i"]: e for e in L} for act, L in man["frames"].items()}
+    FX = {e["i"]: e for e in man["fx"]}
+    ent = lambda e: {"f": nm + "/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["ax"], "ay": e["ay"], "k": e["k"]}
+    mid = lambda e, **kw: dict({"f": nm + "/" + e["f"] + ".png", "w": e["w"], "h": e["h"], "ax": e["w"] / 2, "ay": e["h"] / 2, "k": e["k"]}, **kw)
+    d = {
+        "idle": [ent(e) for e in man["frames"]["idle"]],
+        "attack": [ent(F["attack"][i]) for i in G_ATTACK],
+        "skill": [ent(F["skill"][i]) for i in G_SKILL],
+        "shot": mid(FX[G_SHOT], aim=1, sz=SHOT_DOTS),
+        "hit": mid(FX[G_HIT]),
+        "fx": mid(FX[G_FX[nm]]),
+        "emo": {e["f"][4:]: ent(e) for e in man["frames"]["emo"]},
+    }
     p = man["portrait"]
-    d["portrait"] = {"f": "chiikawa/" + p["f"] + ".png", "w": p["w"], "h": p["h"], "ax": p["w"] / 2, "ay": p["h"] / 2,
+    d["portrait"] = {"f": nm + "/" + p["f"] + ".png", "w": p["w"], "h": p["h"], "ax": p["w"] / 2, "ay": p["h"] / 2,
                      "k": round(PORTRAIT_DOTS / p["w"], 5)}
-    # 도감·컷인에 쓸 큰 감정 얼굴(기쁨) — 합성 성공 카드에서 씀
-    j = F["emo"][3]
-    d["joy"] = ent(j)
     return d
 
 
@@ -154,18 +60,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--board", metavar="PNG", help="고른 프레임을 한 장으로 펴서 여기 저장")
     a = ap.parse_args()
-    out = {"chiikawa": hd_chiikawa()}
-    for name, pk in PICK.items():
-        d = {"portrait": entry(name, "portrait", body=False, fix=False)}
-        for k in ("idle", "attack", "skill"):
-            d[k] = [entry(name, f"{k}_{i}") for i in pk[k]]
-        d["shot"] = entry(name, pk["shot"], body=False) if pk["shot"] else None
-        d["fx"] = entry(name, pk["fx"], body=False) if pk["fx"] else None
-        out[name] = d
+    out = {nm: green(nm) for nm in GREEN}
     js = (
-        "/* 캐릭터 프레임 목록 — tools/chars_manifest.py 가 씁니다(손으로 고치지 말고 그 파일의 PICK 을 고친 뒤 다시 실행).\n"
-        "   그림: 사람이 준 팬 도트 시트를 자른 PNG(공식 그림 아님). 잘리거나 깨진 프레임은 빼 두었습니다.\n"
-        "   f = 파일, w·h = 크기, ax·ay = 발 기준점(몸 프레임) 또는 가운데(효과 프레임), k = 그림 1px 의 도트 수(없으면 1 · 치이카와 고해상도만 씀). */\n"
+        "/* 캐릭터 프레임 목록 — tools/chars_manifest.py 가 씁니다(손으로 고치지 말고 그 파일의 G_* 를 고친 뒤 다시 실행).\n"
+        "   그림: 사람이 만든 초록 바탕 팬 도트 시트를 자른 PNG(공식 그림 아님) — _chiikawa_tools/slice_green.py.\n"
+        "   f = 파일, w·h = 크기, ax·ay = 발 기준점(몸 프레임) 또는 가운데(효과 프레임), k = 그림 1px 의 도트 수.\n"
+        "   hit = 맞은 자리 효과 · emo = 감정 8 · shot 의 aim = 날아가는 방향으로 돌림 · sz = 긴 변 도트. */\n"
         "window.CD_CHAR_FILES = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n"
     )
     (CH / "chars.js").write_text(js)

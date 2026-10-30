@@ -59,8 +59,9 @@
   }
 
   // ── 초상 (판넬 · 도감 · 시작 화면) — 시트의 portrait.png 를 정사각 캔버스 가운데에 ─────
-  function portrait(id, cssPx, hop) {
-    const C = A.char[id], P = C.portrait;
+  // emo(joy·cry …)를 주면 그 감정 프레임(도트)을 대신 담음(없으면 초상) — 결과 화면
+  function portrait(id, cssPx, hop, emo) {
+    const C = A.char[id], E = emo && C.emo && C.emo[emo], P = E || C.portrait;
     const c = document.createElement('canvas');
     // 고해상도 초상(치이카와)은 그림 해상도 그대로 담아 CSS 가 줄이게 — R = 그림 px / 도트
     const R = Math.max(1, Math.min(4, 1 / (P.k || 1)));
@@ -71,7 +72,7 @@
     x.scale(R, R);
     x.drawImage(P.img, (n - P.w) / 2, (n - P.h) / 2, P.w, P.h);
     if (!C.real) { x.font = '20px Galmuri11, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = A.INK; x.fillText(C.label, n / 2, n / 2 + 2); }
-    c.style.imageRendering = 'auto';   // 줄여서 보이므로 부드럽게
+    c.style.imageRendering = E ? 'pixelated' : 'auto';   // 초상은 줄여서 보이므로 부드럽게 · 감정 도트는 키워서 보이므로 또렷하게
     if (cssPx) { c.style.width = cssPx + 'px'; c.style.height = cssPx + 'px'; }
     if (hop) c.style.animationDelay = (-Math.random()).toFixed(2) + 's';
     c.setAttribute('role', 'img'); c.setAttribute('aria-label', CH[id].name);
@@ -185,6 +186,9 @@
           // 평범한 숫자는 괴물 하나당 0.3초에 하나만 — 여럿이 한 마리를 때릴 때 숫자 기둥이 생기지 않게 (치명·스킬은 늘 보임)
           if (!e.crit && !e.skill) { const l = txtAt.get(e.id); if (l != null && view.t - l < 0.3) { if (e.kind !== 'dot' && e.kind !== 'psn' && e.kind !== 'splash' && e.kind !== 'burn' && e.kind !== 'poison') S.play(HIT_SND[e.ch] || 'hit'); break; } txtAt.set(e.id, view.t); }
           if (e.kind === 'dot') { if (Math.random() < 0.6) text(X + 4, Y, fmt(e.dmg), '#ff9a4a', 6, { life: 0.5 }); break; }
+          // 맞은 자리에 그 친구 색의 별 터짐(공격 이펙트 줄) — 지속 피해(독·화상)는 빼고 숫자를 띄울 때만
+          const HC = A.char[e.ch] && A.char[e.ch].hit;
+          if (HC && e.kind !== 'psn' && e.kind !== 'burn' && e.kind !== 'poison') { const hk = 14 / Math.max(HC.w, HC.h) * (e.crit || e.skill ? 1.4 : 1); view.fx.push({ type: 'hitspr', img: HC, x: X, y: Y + 6, t: 0, life: 0.24, k0: 0.6 * hk, k1: hk }); }
           if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', 8, { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); }
           else if (e.kind === 'psn') { if (Math.random() < 0.6) text(X - 4, Y, fmt(e.dmg), '#9be07a', 6, { life: 0.5 }); break; }
           else if (e.skill) text(X, Y - 3, fmt(e.dmg), '#fff3b0', 9, { life: 0.8, vy: -20, pop: 1 });
@@ -382,18 +386,19 @@
       x.fillStyle = k > 0.5 ? '#7ddc6a' : k > 0.25 ? '#ffc94a' : '#ff6a6a'; x.fillRect(bx, byy, Math.ceil(bw * k), 2);
     }
   }
-  // 투사체: 시트에 효과 프레임(물방울·불꽃·바람·별·잎·술병 · 치이카와는 고해상도 시트의 분홍 하트)을 줄여서, 없으면 직접 그린 별
+  // 투사체: 시트의 공격 이펙트 줄 「돌진」(친구 색 혜성)을 날아가는 쪽으로 돌려 줄여 그림, 그림이 없으면 직접 그린 별
   const SHOT_SIZE = 13, SHOT_SPIN = { rakko: 1, pungdengi: 1, kurimanju: 1 }, SHOT_AIM = { hachiware: 1, usagi: 1, momonga: 1 };
   function drawProj(x, p, t) {
     const C = A.char[p.ch], f = C.shot;
     const X = p.x * TILE, Y = p.y * TILE - 6;
     const ang = p.pierce ? Math.atan2(p.vy, p.vx) : Math.atan2(p.ty - p.y, p.tx - p.x);
     x.save(); x.translate(X, Y);
-    if (SHOT_SPIN[p.ch]) x.rotate(t * 10);
+    if (f && f.aim) x.rotate(ang);            // 시트의 돌진 이펙트(오른쪽으로 날아가는 그림) — 날아가는 쪽으로
+    else if (SHOT_SPIN[p.ch]) x.rotate(t * 10);
     else if (SHOT_AIM[p.ch]) x.rotate(ang);
     const k = (p.skill ? 1.5 : 1) * (p.g >= 2 ? 1.15 : 1) * (p.pierce ? 1.45 : 1);
     if (f) {
-      const sc = (SHOT_SIZE * k) / Math.max(f.w, f.h);
+      const sc = ((f.sz || SHOT_SIZE) * k) / Math.max(f.w, f.h);
       x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
       x.drawImage(f.img, -f.w * sc / 2, -f.h * sc / 2, f.w * sc, f.h * sc);
     } else {
@@ -432,7 +437,7 @@
         x.globalAlpha = 1 - k; x.fillStyle = '#ffffff';
         for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; x.beginPath(); x.arc(f.x + Math.cos(a) * f.r * k, f.y + Math.sin(a) * f.r * k * 0.7, 3 * (1 - k) + 1, 0, Math.PI * 2); x.fill(); }
         break;
-      case 'sprite': {
+      case 'sprite': case 'hitspr': {   // hitspr = 맞은 자리 효과(괴물 위에 그림)
         const sc = f.k0 + (f.k1 - f.k0) * Math.sqrt(k);
         x.globalAlpha = k > 0.6 ? 1 - (k - 0.6) / 0.4 : 1;
         x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
@@ -766,7 +771,7 @@
   const ov = $('ov'), sheet = $('sheet');
   function open(html) { sheet.innerHTML = html; ov.hidden = false; sheet.scrollTop = 0; }
   function close() { ov.hidden = true; }
-  function parade(box, ids) { ids.forEach((id) => box.appendChild(portrait(id, 0, true))); }
+  function parade(box, ids, emo) { ids.forEach((id) => box.appendChild(portrait(id, 0, true, emo))); }
   function btn(id, fn) { const b = sheet.querySelector('#' + id); if (b) b.addEventListener('click', () => { S.unlock(); fn(); }); }
 
   function mmss(t) { t = Math.round(t); return Math.floor(t / 60) + '분 ' + (t % 60) + '초'; }
@@ -847,7 +852,7 @@
     // 판에 남은 친구들
     const ids = [];
     g.slots.forEach((sl) => { if (sl.u && ids.length < 8) ids.push(sl.u.ch); });
-    parade($('parade'), ids.length ? ids : ['chiikawa', 'hachiware', 'usagi']);
+    parade($('parade'), ids.length ? ids : ['chiikawa', 'hachiware', 'usagi'], e.win ? 'joy' : 'cry');
     btn('againBtn', start);
     btn('homeBtn', titleScreen);
   }
@@ -898,7 +903,7 @@
     // 확인용(tools/play_check.py): 칸 i 에 친구를 바로 놓기 · 그 친구의 지금 몸짓(idle·attack·skill)
     put(i, ch, gr) { g.slots[i].u = g.newUnit(ch, gr || 0); g.emit('summon', { slot: i, ch, g: gr || 0, cost: 0 }); return true; },
     mode(i) { const u = g.slots[i] && g.slots[i].u; return u ? an(u).mode : null; },
-    // 친구 그림을 다 받았는지 · 칸 위 키(도트) — 치이카와 고해상도가 다른 친구와 같은 키인지 봄
-    charInfo(id) { const C = A.char[id]; return { real: C.real, idle: C.idle.length, attack: C.attack.length, skill: C.skill.length, shot: !!C.shot, fx: !!C.fx, h: C.idle[0].h, k: C.idle[0].k || 1, portraitW: C.portrait.w }; },
+    // 친구 그림을 다 받았는지 · 칸 위 키(도트) · 맞은 자리 효과 · 감정 수
+    charInfo(id) { const C = A.char[id]; return { real: C.real, idle: C.idle.length, attack: C.attack.length, skill: C.skill.length, shot: !!C.shot, fx: !!C.fx, hit: !!C.hit, emo: Object.keys(C.emo || {}).length, h: C.idle[0].h, k: C.idle[0].k || 1, portraitW: C.portrait.w }; },
   };
 })();

@@ -10,7 +10,7 @@
      소환 = 버튼 누르기 · 합성 = 칸에서 칸으로 끌기(데스크톱 마우스 / 폰 손가락) · 팔기 = 칸 누르기 → 「팔기」 · 강화 = 등급 버튼
   3) 클리어 1판 → 결과 화면 / 「다시 하기」 → 손 놓고 패배 1판 → 결과 화면
   4) 새로 고침 후 시작 화면에 최고 기록이 남는지(localStorage)
-  5) 치이카와(고해상도 도트) 장면 — 칸에 친구들과 나란히 · 공격 · 스킬(하트) · 소환 카드 · 도감 초상 → ck_<기기>_*.png
+  5) 치이카와 장면 — 칸에 친구들과 나란히 · 공격 · 스킬 · 소환 카드 · 도감 초상 → ck_<기기>_*.png
      치이카와 그림을 다 받았는지, 칸 위 키가 다른 친구와 같은지(±4 도트)도 봄
 판(공식 레퍼런스 옆에 게임 화면 · 합성 순간 · 보스 · 결과)은 output/chiikawa-defense-check/board.png (커밋 안 함).
 """
@@ -440,8 +440,10 @@ def main():
     for c in ck:
         me = c["info"]["chiikawa"]
         hs = [v["h"] for k, v in c["info"].items() if k != "chiikawa"]
-        if not (me["real"] and me["idle"] >= 6 and me["attack"] >= 4 and me["skill"] >= 3 and me["shot"] and me["fx"]):
-            bad.append(f"{c['device']}: 치이카와 그림이 모자람 {me}")
+        for nm in ("chiikawa", "hachiware", "usagi", "shisa", "momonga", "rakko", "pungdengi", "kurimanju"):   # 여덟 명: 동작 · 이펙트 · 감정 다 받았는지
+            v = c["info"][nm]
+            if not (v["real"] and v["idle"] >= 6 and v["attack"] >= 4 and v["skill"] >= 4 and v["shot"] and v["fx"] and v["hit"] and v["emo"] == 8):
+                bad.append(f"{c['device']}: {nm} 그림이 모자람 {v}")
         if not (min(hs) - 4 <= me["h"] <= max(hs) + 4):
             bad.append(f"{c['device']}: 치이카와 키 {me['h']} 가 다른 친구({min(hs)}~{max(hs)})와 다름")
         if c["saw"] != ["attack", "skill"]:
