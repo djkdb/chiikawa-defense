@@ -216,7 +216,9 @@
       seen[sk] = (seen[sk] || 0) + 1;
       switch (e.type) {
         case 'summon': {
-          const u = g.slots[e.slot].u, a = an(u), p = slotXY(e.slot);
+          const u = g.slots[e.slot].u;
+          if (!u) break;   // 같은 틱에 바로 합성 · 팔려 자리가 빈 경우 — 여기서 터지면 frame() 이 멈춰 판 전체가 얼어붙음
+          const a = an(u), p = slotXY(e.slot);
           a.pop = 1; a.flash = 0.8;
           card(e.slot, e.ch, e.g, e.g >= 3);   // 큰 카드는 전설 이상만 — 판 가운데를 자주 가려서 (사람: 「합성 배너가 너무 커서 게임 화면을 가려」)
           view.fx.push({ type: 'pillar', x: p.x, y: p.y, col: GR[e.g].color, t: 0, life: 0.55 });
