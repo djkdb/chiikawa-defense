@@ -234,6 +234,7 @@
           RAINBOW.forEach((c, i) => view.fx.push({ type: 'ring', x: p.x, y: p.y, col: c, r0: 3, r1: 26 + i * 6, t: -0.25 - i * 0.05, life: 0.6, w: 2 }));
           view.fx.push({ type: 'rays', x: p.x, y: p.y, col: '#ffe3f0', t: -0.2, life: 1.8 });
           setTimeout(() => sparks(p.x, p.y, 'myth', 24, 18), 250);
+          pfx('firework', p.x, p.y + 14, { delay: 0.1 });
           card(e.slot, e.ch, 4, true, 0.25);
           view.shake = 0.45; hitStop(0.25); flashScreen('#ffffff', 0.7, 0.4); vib(50);
           banner('신화 ' + CH[e.ch].name + ' 탄생!', '「' + T.recipes[e.r].myth.name + '」', 'myth');
@@ -297,15 +298,16 @@
           const B = BOSS[e.bt], X = e.x * TILE, Y = e.y * TILE;
           view.warn = null;
           if (e.bt === 'silence') {
-            for (const i of e.targets) { const p = slotXY(i); view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#b48cff', r0: 20, r1: 3, t: 0, life: 0.4, w: 3 }); sparks(p.x, p.y, 'epic', 6, 10); }
+            for (const i of e.targets) { const p = slotXY(i); view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#b48cff', r0: 20, r1: 3, t: 0, life: 0.4, w: 3 }); sparks(p.x, p.y, 'epic', 6, 10); pfx('sigil', p.x, p.y + 8); }   // 마법진이 봉인된 친구 머리에 걸리게
             banner('침묵!', '친구 ' + e.targets.length + '명이 ' + B.t + '초 동안 봉인', 'boss');
             S.play('silence');
           } else if (e.bt === 'summon') {
             parts(X, Y - 10, ['#ffffff', '#cfe7ff', '#ffd0dc'], 20, 40); S.play('bsummon');
+            pfx('portal', X, Y + 15);
             text(X, Y - 54, '졸개 ' + B.n + '마리!', '#ffffff', 8, { life: 1 });
           } else if (e.bt === 'heal') {
             text(X, Y - 54, '+' + fmt(e.heal), '#9be07a', 10, { life: 1.1, pop: 1 });
-            view.fx.push({ type: 'ring', x: X, y: Y - 20, col: '#b8f07a', r0: 8, r1: 40, t: 0, life: 0.6, w: 3, fill: 'rgba(190,240,120,.18)' });
+            if (!pfx('heal', X, Y + 15)) view.fx.push({ type: 'ring', x: X, y: Y - 20, col: '#b8f07a', r0: 8, r1: 40, t: 0, life: 0.6, w: 3, fill: 'rgba(190,240,120,.18)' });
             S.play('bheal');
           } else if (e.bt === 'shuffle') {
             for (const [from, to] of e.moves) {
@@ -329,6 +331,7 @@
           view.fx.push({ type: 'ring', x: p.x, y: p.y, col: GR[e.g].color, r0: 4, r1: 30, t: -0.2, life: 0.45, w: 3 });
           view.fx.push({ type: 'ring', x: p.x, y: p.y, col: '#ffffff', r0: 2, r1: 20, t: -0.18, life: 0.3, w: 2 });
           setTimeout(() => sparks(p.x, p.y, GR[e.g].key, 8 + e.g * 5, 14), 200);
+          pfx('burst', p.x, p.y + 14, { color: GR[e.g].color, delay: 0.15 });
           card(e.slot, e.ch, e.g, e.g >= 3, 0.18);
           S.play('merge'); vib(e.g >= 3 ? 40 : 15);
           hitStop(e.g >= 3 ? 0.14 : 0.05);
@@ -390,7 +393,7 @@
           if (e.skill || e.crit) view.bigHit.set(e.id, 0.22);
           if (e.armor && Math.random() < 0.25) { text(X - 6, Y - 6, '막음', '#d6dae2', 6, { life: 0.5 }); S.play('tink'); }
           if ((e.crit || e.skill) && g.enemies.some((m) => m.id === e.id && m.kind === 'boss')) { hitStop(0.035); view.shake = Math.max(view.shake, 0.08); }
-          if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', dmgSize(e.dmg, 8), { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); }
+          if (e.crit) { text(X, Y - 3, '치명 ' + fmt(e.dmg), '#ff5a5a', dmgSize(e.dmg, 8), { life: 0.8, vy: -20, pop: 1 }); S.play('crit'); pfx('crit', X, Y + 22, { flip: Math.random() < 0.5 }); }
           else if (e.kind === 'psn') { if (Math.random() < 0.6) text(X - 4, Y, fmt(e.dmg), '#9be07a', 6, { life: 0.5 }); break; }
           else if (e.skill) text(X, Y - 3, fmt(e.dmg), '#fff3b0', dmgSize(e.dmg, 9), { life: 0.8, vy: -20, pop: 1 });
           else if (e.kind !== 'splash' && e.kind !== 'burn' && e.kind !== 'poison') { text(X + (Math.random() - 0.5) * 6, Y, fmt(e.dmg), '#ffffff', dmgSize(e.dmg, 7)); S.play(HIT_SND[e.ch] || 'hit'); }
@@ -402,6 +405,7 @@
           const X = e.x * TILE, Y = e.y * TILE;
           const SP = { shisa: ['#ff8a3d', 'rgba(255,170,90,.25)', ['#ffd36a', '#ff8a3d', '#e2522b'], 'fire'], pungdengi: ['#7cc46a', 'rgba(150,220,120,.28)', ['#bfe8a4', '#7cc46a', '#4f8f45'], 'psn'], momonga: ['#bfe2ff', 'rgba(200,235,255,.3)', ['#ffffff', '#bfe2ff'], 'gust'] }[e.ch] || ['#8fc2f2', 'rgba(160,210,255,.28)', ['#ffffff', '#bfe2ff', '#8fc2f2'], 'splash'];
           view.fx.push({ type: 'ring', x: X, y: Y, col: SP[0], r0: 3, r1: e.r * TILE, t: 0, life: e.skill ? 0.45 : 0.3, w: 3, fill: SP[1] });
+          if (e.skill && e.ch === 'hachiware') pfx('snow', X, Y + 10);
           parts(X, Y, SP[2], e.skill ? 14 : 6, 34);
           if (!e.skill) S.play(SP[3]);
           break;
@@ -429,7 +433,8 @@
             const act = e.trait === 'split' ? (e.small ? 'small' : 'split') : 'down';
             view.fx.push({ type: 'corpse', grp: 'mon', name: e.trait, act, x: X, y: Y, flip: facesRight(e.dir), t: 0, life: e.trait === 'split' && !e.small ? 0.5 : 0.55 });
           }
-          view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
+          if (!pfx('poof', X, Y + 10)) view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
+          if (e.kind === 'boss') { pfx('crit', X, Y + 15); pfx('poof', X - 10, Y + 14, { delay: 0.08 }); pfx('poof', X + 10, Y + 14, { delay: 0.16 }); }
           text(X, Y - 14, '+' + e.coins, '#ffd54a', e.kind === 'boss' ? 11 : 7, { coin: true, life: 0.9, vy: -14 });
           S.play('pop'); S.play('coin');
           if (e.kind === 'boss') { view.shake = 0.5; view.warn = null; hitStop(0.22); flashScreen('#ffffff', 0.6, 0.3); banner(BOSS[e.bt].name + ' 토벌!', '+' + e.coins + ' 동전 · 클로버 +' + T.luck.boss, 'boss'); }
@@ -454,7 +459,8 @@
           cutin('경고! 보스 등장', B.name + ' — 「' + B.skill + '」 ' + B.desc, 'boss', f && f.img.src);
           break;
         }
-        case 'end': setTimeout(() => endScreen(e), e.win ? 600 : 900); S.play(e.win ? 'win' : 'lose'); phase = 'end'; view.warn = null; break;
+        case 'end': if (e.win) { pfx('confetti', BW * 0.3, ROWS * TILE - 4); pfx('confetti', BW * 0.7, ROWS * TILE - 4, { delay: 0.25 }); }
+          setTimeout(() => endScreen(e), e.win ? 600 : 900); S.play(e.win ? 'win' : 'lose'); phase = 'end'; view.warn = null; break;
       }
     }
     g.ev.length = 0;
@@ -605,6 +611,12 @@
     const n = GR[gi].stars, step = n >= 5 ? 5.5 : 7;
     for (let k = 0; k < n; k++) star(x, Math.round(X + 16 - (n - 1) * step / 2 + k * step), Y + 29, gi >= 4 ? RAINBOW[k % RAINBOW.length] : GR[gi].color);
   }
+  // pixelfx 효과 층(js/pfxlayer.js · module 이라 늦게 옴). 없으면 false → 예전 효과로
+  // 「움직임 줄이기」 면 안 씀(번쩍임이 있음)
+  function pfx(name, x, y, o) { return !calm() && !!(window.PFX && PFX.ready && PFX.spawn(name, x, y, o)); }
+  function pfxInit() { if (window.PFX && !PFX.ready) PFX.init({ w: BW, h: BH, pad: PAD, r: 2 }); }
+  addEventListener('pfx-ready', pfxInit);
+  pfxInit();
   // 괴물이 볼 쪽: 길은 시계 방향(윗길 → 오른쪽 아래로 → 아랫길 ← 왼쪽 위로). 세로 길에선 다음에 꺾일 쪽을 봄
   // (오른쪽 내려가기 = 곧 왼쪽으로 · 왼쪽 올라가기 = 곧 오른쪽으로) — 꺾을 때마다 뒤집히지 않게
   const facesRight = (dir) => dir === 0 || dir === 3;
@@ -903,6 +915,7 @@
       ctx.setLineDash([4, 3]); ctx.lineDashOffset = -t * 12;
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore();
     }
+    if (window.PFX) PFX.draw(ctx, 'under');   // 바닥 마법진 · 회복 고리 · 소환 구멍
     for (let i = 0; i < g.slots.length; i++) drawSlot(ctx, i, t);
     // 합성으로 날아가는 짝
     for (const f of view.flyGhosts) {
@@ -916,6 +929,7 @@
     for (const e of es) drawEnemy(ctx, e, t);
     for (const p of g.proj) drawProj(ctx, p, t);
     for (const f of view.fx) if (!UNDER[f.type]) drawFx(ctx, f);
+    if (window.PFX) PFX.draw(ctx, 'over');
     if (drag && drag.moved) {
       const u = g.slots[drag.from].u;
       if (u) drawChar(ctx, u.ch, drag.ax, drag.ay + 14, { sx: 1.05, sy: 1.05, glow: GR[u.g].color });
@@ -954,6 +968,7 @@
   }
   function tickView(dt) {
     if (!dt) return;
+    if (window.PFX) PFX.update(dt);
     if (view.shake > 0) view.shake = Math.max(0, view.shake - dt);
     for (const a of view.an.values()) {
       if (a.delay > 0) { a.delay -= dt; continue; }
@@ -1266,7 +1281,7 @@
       '<li>괴물은 웨이브마다 <b>특성</b>(고속·장갑·재생·분열·부활)이 바뀌어요. 보스는 <b>기술</b>을 써요.</li>' +
       '<li><b>전설 셋</b>을 모으면 <b>신화</b> 레시피! 길 위 괴물이 한도에 닿으면 패배, <b>' + T.waves + '웨이브</b> 보스를 잡으면 클리어.</li>' +
       '</ol></div>' +
-      '<p class="sub notice">캐릭터 · 특성 괴물 · 보스 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 일반 괴물 · 길 · 효과 · 소리는 직접 만들었어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
+      '<p class="sub notice">캐릭터 · 특성 괴물 · 보스 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 일반 괴물 · 길 · 소리와 효과 대부분은 직접 만들었고, 일부 픽셀 효과는 오픈소스 <b>pixelfx</b>(MIT · Patch · Hugo Duprez)를 썼어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
     );
     parade($('parade'), T.chars.map((c) => c.id));
     sheet.querySelectorAll('.diff').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.unlock(); S.play('pick'); pickDiff(+b.dataset.i); } }));
@@ -1457,6 +1472,7 @@
     endInfo = null;
     g = new Core.Game({ seed, diff: diffSel });
     setBg(g.diff);
+    if (window.PFX) PFX.clear();
     view.an.clear(); txtAt.clear(); view.fx = []; view.texts = []; view.flyGhosts = []; view.cards = [];
     sel = -1; drag = null; hudCache.sb = null; hudCache.odds = null; hudCache.myth = null; infoKey = ''; view.warn = null; view.bigHit.clear(); lastInterest = 0;
     T.upgrade.base.forEach((_, i) => { $('up' + i).dataset.k = ''; });

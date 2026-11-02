@@ -10,6 +10,8 @@ js/game.js          화면 · 입력 · 연출 · 덮개 화면
 js/art.js           직접 그린 것(일반 괴물 · 길 · 바닥 · 투사체) + 캐릭터 시트 불러오기
 js/mon.js           특성 괴물 · 보스 시트 프레임 불러오기 (assets/monsters/monsters.js)
 js/sfx.js           효과음 — Web Audio 로 그 자리에서 합성 (잡음 「쉭」 없음)
+js/pfxlayer.js      픽셀 효과 층 — js/pfx/ 의 pixelfx 효과를 판 위에 얹음 (module · 못 받아도 게임은 예전 효과로)
+js/pfx/             patch-gg/pixelfx(MIT) 에서 옮겨 온 core + 효과 9개. 손으로 고치지 않음 — NOTICE.md
 assets/chars/       친구 8명 시트 프레임 (chars_manifest.py)
 assets/monsters/    괴물 특성 5종 · 보스 4종 프레임 (tools/monsters_slice.py)
 assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤불 · 괴물 굴 …) (tools/tiles_slice.py)
@@ -63,6 +65,11 @@ manifest.webmanifest  설치 정보(이름 · 아이콘 · 전체 화면 · 세�
 - **손맛** (보이기만 — 규칙 · 밸런스엔 영향 없음): 타격 멈칫(보스 치명 · 합성 · 보스 처치 · 신화 때 규칙 시간을 0.03~0.25초 세움) · 화면 흔들림 · 피해가 클수록 큰 숫자 ·
   처치하면 동전이 튀어 올랐다 윗줄 동전 칸으로 날아가 칸이 통 튐 · 1.5초 안에 이어 잡으면 콤보 숫자(10마다 소리) · 보스 등장 경고 띠 컷인(보스 그림 + 기술) ·
   새 특성이 처음 나오는 웨이브 컷인 · 합성/강화 때 등급 색 번쩍 + 「UP!」 + 레벨업 아르페지오.
+- **픽셀 효과(pixelfx)** — 오픈소스 [patch-gg/pixelfx](https://github.com/patch-gg/pixelfx)(MIT)의 효과 9개를 기존 효과 위에 얹음: 치명타 crit-hit · 처치 poof · 합성 mana-burst(등급 색으로 다시 칠함) ·
+  신화 firework-burst · 하치와레 큰 물결 snowflake-burst · 보스 회복 heal-aoe · 소환 spawn-portal · 침묵 hex-sigil(봉인 칸마다) · 클리어 confetti.
+  - 판 도트의 2배 촘촘한 격자에 그려 크기 절반(원래 100~250px 라 판 가로 192 에 너무 큼). pixelfx 는 어두운 배경용이라 빛을 1.6배로 합성하고, 진한 점에만 잉크색 테두리를 깔아 풀밭에서도 보이게.
+  - 효과 하나에 1.5~3ms 라 자주 나는 것(처치 · 치명 · 합성 · 물결)은 합쳐 5개까지, 넘치면 예전 효과. 효과가 있는 상자만 합성 · 30fps 로 다시 그림. 「움직임 줄이기」 면 안 씀.
+  - 효과를 더하려면: pixelfx 저장소에서 `node tools/render.mjs <id>` 로 그려 보고 고른 뒤, 그 파일(과 범주의 `_lib.js`)만 `js/pfx/fx/` 로 복사하고 `js/pfxlayer.js` 의 `FX` 에 한 줄.
 - **색**: 크림 · 베이지를 쓰지 않음 — 페이지 바탕은 하늘색(낮 들판 · 밤 숲 맵), 종이 패널은 흰 종이(키트 패널을 흰색으로 바꿔 복사), 버튼은 노랑 · 하늘 · 분홍.
 
 ## 화면 · 기기
