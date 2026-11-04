@@ -175,10 +175,13 @@
     const u = new URL(carryUrl());
     return 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(u.href) + ';end';
   }
+  // 넘어가지 못하고 그대로 남아 있으면 1.5초 뒤 손으로 하는 길을 보여 줌.
+  // 그 사이 「닫기」 를 누르면(또는 다시 누르면) 예약을 지움 — 닫았는데 안내가 저절로 다시 떠 게임을 가리던 것
+  let chromeT = 0;
   function openChrome() {
+    clearTimeout(chromeT);
     location.href = intentUrl();
-    // 넘어가지 못하고 그대로 남아 있으면 손으로 하는 길을 보여 줌
-    setTimeout(() => { if (!document.hidden) guide(true); }, 1500);
+    chromeT = setTimeout(() => { chromeT = 0; if (!document.hidden) guide(true); }, 1500);
   }
 
   // ── 그림 안내 조각 ──────────────────────────────────────
@@ -243,7 +246,7 @@
     const f = ovEl.querySelector('[data-ia-focus]') || ovEl.querySelector('button');
     if (f) try { f.focus({ preventScroll: true }); } catch (e) { /* 무시 */ }
   }
-  function closeSheet() { if (ovEl) ovEl.hidden = true; }
+  function closeSheet() { clearTimeout(chromeT); chromeT = 0; if (ovEl) ovEl.hidden = true; }
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && ovEl && !ovEl.hidden) { e.stopPropagation(); closeSheet(); } }, true);
 
   function hasRecords() { return C.stores.length > 0 && !!exportCode(); }
