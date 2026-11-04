@@ -148,10 +148,10 @@
     // ── 보스 기술 ── 5·10·15·20 웨이브 차례로, 무한 모드는 순환. first 초 뒤 첫 기술, 그 뒤 every 초마다.
     // warn 초 동안 「준비」(멈춰 서서 예고) → 쓰는 중 cast 초
     bosses: [
-      { key: 'silence', name: '쉿쉿 대왕', skill: '침묵', first: 4, every: 9, warn: 2, cast: 0.8, n: 2, t: 3, desc: '친구 2칸을 3초 동안 봉인' },
-      { key: 'summon',  name: '와글 대왕', skill: '소환', first: 4, every: 9, warn: 1.6, cast: 0.8, n: 5, desc: '졸개 5마리를 부름' },
-      { key: 'heal',    name: '새싹 대왕', skill: '회복', first: 5, every: 10, warn: 2, cast: 0.9, x: 0.2, desc: '체력 20% 회복' },
-      { key: 'shuffle', name: '빙글 대왕', skill: '셔플', first: 5, every: 11, warn: 2.2, cast: 0.9, desc: '칸 위 친구 자리를 마구 섞음' },
+      { key: 'silence', name: '세이렌', skill: '침묵', first: 4, every: 9, warn: 2, cast: 0.8, n: 2, t: 3, desc: '친구 2칸을 3초 동안 봉인' },
+      { key: 'summon',  name: '아노코', skill: '소환', first: 4, every: 9, warn: 1.6, cast: 0.8, n: 5, desc: '작은 키메라 5마리를 부름' },
+      { key: 'heal',    name: '큰 새', skill: '회복', first: 5, every: 10, warn: 2, cast: 0.9, x: 0.2, desc: '체력 20% 회복' },
+      { key: 'shuffle', name: '두부 의태형', skill: '셔플', first: 5, every: 11, warn: 2.2, cast: 0.9, desc: '칸 위 친구 자리를 마구 섞음' },
     ],
 
     // 화면 · 연출 (게임 규칙과는 무관)

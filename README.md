@@ -115,6 +115,8 @@ UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 
 
 - 친구 8명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py`).
 - 특성 괴물 · 보스: 사람이 만든 초록 바탕 시트(`tools/sheets/monsters.webp` · `bosses.webp`)를 `tools/monsters_slice.py` 로 잘라 `assets/monsters/`.
+  2026-11-04 부터 원작 『치이카와』 괴물로: 고속 = 중지데스 · 장갑 = 아미아브라 · 재생 = 간장 문어 · 분열 = 생크림 · 부활 = 분홍 키메라 / 보스 침묵 = 세이렌 · 소환 = 아노코 · 회복 = 큰 새 · 셔플 = 두부 의태형.
+  시트를 바꾸면 초록 틈을 다시 재서 `MON_ROWS` · `BOSS_ROWS` 의 칸 경계를 고치고, 파일 이름이 같으므로 `sw.js` 의 `VERSION` 을 올림.
   크로마키는 「초록 정도」 gn = G − max(R,B) 로 키를 좁게(185 이상 투명, 130 이하 불투명) 잡아서 재생 괴물 잎(≈70) · 부활 쓰러짐 초록 유령(≈95~120) · 회복 보스 연두 빛을 지우지 않습니다.
   초록이 원래 없는 줄은 모든 픽셀의 초록 번짐을 깎고, 있는 줄(재생 · 회복 · 부활 쓰러짐)은 가장자리 3px 만 깎습니다.
   확인: `python3 tools/monsters_slice.py --board /tmp/mon.png` (어두운 · 밝은 바탕 확대 판).
