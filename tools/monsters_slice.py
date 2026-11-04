@@ -8,6 +8,7 @@
       고속 = 중지데스: 걷기 6 · 맞음 · 쓰러짐 / 장갑 = 아미아브라: 걷기 6 · 맞음 · 쓰러짐 / 재생 = 간장 문어: 걷기 5 · 회복 반짝 · 맞음 · 쓰러짐
       분열 = 생크림: 걷기 6 · 갈라짐 2 · 작은 것 2 / 부활 = 분홍 키메라: 걷기 6 · 쓰러짐(초록 반투명) · 다시 일어남
   tools/sheets/bosses.webp — 보스 4줄 × 8칸: 침묵 = 세이렌 · 소환 = 아노코 · 회복 = 큰 새 · 셔플 = 두부 의태형.
+      셔플 줄은 다시 받은 한 줄 시트 tools/sheets/bosses_shuffle.webp 에서 읽음(ROW_SHEET).
       앞 4칸 걷기(0 = 정면, 1~3 = 왼쪽을 봄), 5·6칸 = 기술 준비, 7·8칸 = 쓰는 중.
   칸 경계는 시트를 바꿀 때마다 초록 틈(그림이 없는 세로줄)을 재서 아래 MON_ROWS · BOSS_ROWS 에 적음.
 
@@ -55,8 +56,10 @@ BOSS_ROWS = {
     "silence": (80, 273, [112, 295, 469, 633, 802, 976, 1146, 1337, 1530]),
     "summon":  (301, 497, [112, 290, 467, 635, 815, 990, 1166, 1340, 1530]),
     "heal":    (532, 740, [112, 292, 463, 633, 816, 986, 1154, 1342, 1530]),
-    "shuffle": (790, 954, [112, 286, 469, 629, 804, 980, 1160, 1338, 1530]),
+    "shuffle": (210, 460, [140, 364, 606, 805, 1051, 1299, 1520, 1751, 1990]),   # 따로 받은 한 줄 시트(ROW_SHEET)
 }
+# 줄 하나만 다시 받은 경우: 그 줄은 이 파일에서 읽음 (좌표도 그 파일 기준)
+ROW_SHEET = {"shuffle": "bosses_shuffle.webp"}
 BOSS_NAMES = ["front", "walk", "walk", "walk", "ready", "ready", "cast", "cast"]
 
 
@@ -170,14 +173,20 @@ def scale_rgba(arr, k):
 # 원래 초록(잎 · 초록 유령 · 연두 빛)이 있는 줄 → 그 프레임 이름들(None = 줄 전체). 부활은 쓰러짐(초록 유령)만 —
 # 걷기·일어남의 하늘색 꼬리는 전부 깎아야 청록으로 물들지 않음
 GREEN = {"fast": None, "regen": {"heal"}, "heal": None, "revive": {"down"}}   # fast = 연두색 중지데스(원래 초록을 지킴)
-ROW_H = {"split": 25, "shuffle": 42}                        # 분열(생크림)은 넓적해서 · 셔플(두부)은 몸은 낮고 팔이 넓어서 키를 낮춤 (칸 폭 · 다른 보스 크기를 넘지 않게)
+ROW_H = {"split": 25, "shuffle": 50}                        # 분열(생크림)은 넓적해서 · 셔플(두부)은 키에 긴 팔까지 들어가 조금 낮춤 (칸 폭 · 다른 보스 크기를 넘지 않게)
 
 
 def slice_rows(sheet, rows, names_of, target_h, prefix):
-    a = np.asarray(Image.open(sheet).convert("RGB")).astype(float)
-    keyed = {False: key(a, False), True: key(a, True)}
+    sheets = {}
+
+    def keyed_of(path):
+        if path not in sheets:
+            a = np.asarray(Image.open(path).convert("RGB")).astype(float)
+            sheets[path] = {False: key(a, False), True: key(a, True)}
+        return sheets[path]
     man, cells_dbg = {}, {}
     for name, spec in rows.items():
+        keyed = keyed_of(SHEETS / ROW_SHEET[name] if name in ROW_SHEET else sheet)
         y0, y1, xs = spec[0], spec[1], spec[2]
         names = names_of(spec)
         gset = GREEN.get(name, set())
