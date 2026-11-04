@@ -11,7 +11,7 @@
 
 // ── 바꿀 곳 ──────────────────────────────────────────────
 // 1) 판 번호: 캐시 이름에 붙음. 올리면 activate 때 옛 캐시를 지움 (코드는 어차피 network-first 라 그림을 크게 바꿨을 때만 올리면 됨)
-const VERSION = 'v4';   // 2026-11-04 9번째 친구 카니(chars.js 가 바뀜)
+const VERSION = 'v5';   // 2026-11-04 그림을 256색으로 줄임(tools/png_shrink.py) — 같은 이름이라 캐시를 새로
 const PREFIX = 'ck-defense-';
 // 2) 설치하자마자 담아 둘 뼈대 (나머지는 warm · 쓰면서 담김). 하나가 404 여도 설치는 계속됨
 const CORE = ['./', './index.html', './manifest.webmanifest', './inapp.css', './js/inapp.js'];

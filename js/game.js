@@ -1560,7 +1560,11 @@
   applySettings();
   { const sp = settings().spd; if (sp > 0 && sp < speeds.length) { spd = sp; $('spdBtn').firstChild.textContent = '×' + speeds[spd]; } }
   if (speeds[0] !== 1) $('spdBtn').firstChild.textContent = '×' + speeds[0];
-  A.loadChars(T.chars, () => { loadStep(0.5); MON.load(() => { loadStep(0.8); TIL.load(() => {
+  // 친구 · 괴물 · 판 타일 그림은 서로 기다릴 일이 없어 한꺼번에 받음 (차례로 받으면 인스타 인앱 첫 화면이 그 합만큼 늦음)
+  let loadLeft = 3;
+  const loaded = () => { loadLeft--; loadStep(1 - loadLeft / 3 * 0.9); if (!loadLeft) boot(); };
+  A.loadChars(T.chars, loaded); MON.load(loaded); TIL.load(loaded);
+  function boot() {
     loadStep(1);
     if (TIL.ready) { floorHi = TIL.floor(COLS, ROWS, TILE, 11); topHi = TIL.top(BW, PAD); }
     setTimeout(() => $('loading').classList.add('done'), 150);
@@ -1573,7 +1577,7 @@
     // 지금까지 받은 그림 · 코드를 서비스워커 캐시에 담아 둠 → 다음엔 인터넷 없이도 열림
     if (IA) setTimeout(() => IA.warm(), 800);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fit(); });
-  }); }); });
+  }
 
   // 확인용 (play_check.py 가 읽기만 함)
   CD.test = {
