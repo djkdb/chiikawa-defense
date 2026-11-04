@@ -33,12 +33,15 @@ OUT = main_repo() / "output" / "chiikawa-defense-check" / "pwa"
 
 IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)"
 AND = "Mozilla/5.0 (Linux; Android 14; SM-S918N Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.100 Mobile Safari/537.36"
+PIX = "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP2A.240805.005; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/129.0.6668.100 Mobile Safari/537.36"
 ENVS = [
     # 이름, UA, 기대 kind, 기대 app, 버튼 글
     ("ig_ios", IOS + " Mobile/15E148 Instagram 385.0.0.31.89 (iPhone15,2; iOS 18_5; ko_KR; ko; scale=3.00; 1179x2556; 742183412)", "ios-inapp", "instagram", "설치 방법"),
-    ("ig_android", AND + " Instagram 352.0.0.38.100 Android (34/14; 480dpi; 1080x2340; samsung; SM-S918N; dm3q; qcom; ko_KR; 650437200)", "android-inapp", "instagram", "크롬에서 열기"),
+    # 갤럭시(SM-…) 인앱은 삼성 인터넷으로, 그 밖 Android(픽셀) 인앱은 Chrome 으로 옮김
+    ("ig_android", AND + " Instagram 352.0.0.38.100 Android (34/14; 480dpi; 1080x2340; samsung; SM-S918N; dm3q; qcom; ko_KR; 650437200)", "android-inapp", "instagram", "삼성 인터넷에서 열기"),
+    ("ig_pixel", PIX + " Instagram 352.0.0.38.100 Android (34/14; 420dpi; 1080x2400; Google/google; Pixel 8; shiba; shiba; ko_KR; 650437200)", "android-inapp", "instagram", "크롬에서 열기"),
     ("kakao_ios", IOS + " Mobile/15E148 KAKAOTALK 25.6.0", "ios-inapp", "kakao", "설치 방법"),
-    ("kakao_android", AND + ";KAKAOTALK 2410600", "android-inapp", "kakao", "크롬에서 열기"),
+    ("kakao_android", AND + ";KAKAOTALK 2410600", "android-inapp", "kakao", "삼성 인터넷에서 열기"),
     ("ios_safari", IOS + " Version/18.5 Mobile/15E148 Safari/604.1", "ios", "", "설치 방법"),
     ("android_chrome", "Mozilla/5.0 (Linux; Android 14; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36", "android", "", "설치 방법"),
 ]
@@ -106,7 +109,7 @@ def env_pass(pw, base, env, vp, ipad=False):
     # 안내 창 — Android 인앱은 버튼이 intent:// 로 나가므로 창을 바로 엶 (+ intent 주소 모양 확인)
     if want_kind == "android-inapp":
         r["intent"] = P.ev("InApp.intentUrl()")
-        r["intent_ok"] = r["intent"].startswith("intent://127.0.0.1:") and "#Intent;scheme=https;package=com.android.chrome;" in r["intent"] and r["intent"].endswith(";end")
+        r["intent_ok"] = r["intent"].startswith("intent://127.0.0.1:") and ("#Intent;scheme=https;package=" + ("com.sec.android.app.sbrowser" if "SM-" in ua else "com.android.chrome") + ";") in r["intent"] and r["intent"].endswith(";end")
         P.ev("InApp.guide()")
     else:
         P.click("[data-ia-banner] [data-ia='go']")

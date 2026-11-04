@@ -57,7 +57,9 @@
     const os = ios ? 'ios' : android ? 'android' : 'desktop';
     // kind = 무엇을 안내할지
     const kind = standalone ? 'app' : app ? (os === 'desktop' ? 'desktop' : os + '-inapp') : os;
-    return { os, app, browser, standalone, kind };
+    // 갤럭시(삼성 폰): 기본 브라우저가 삼성 인터넷이라 인앱에서 옮길 곳을 Chrome 대신 삼성 인터넷으로 (모델명 SM-… · samsung)
+    const galaxy = android && /\bSM-[A-Z0-9]+|samsung|SAMSUNG|Galaxy/.test(ua);
+    return { os, app, browser, standalone, kind, galaxy };
   }
   const E = detect();
   const APPNAME = { instagram: '인스타그램', facebook: '페이스북', kakao: '카카오톡', line: '라인', naver: '네이버 앱', daum: '다음 앱', threads: '스레드', webview: '앱' };
@@ -143,7 +145,7 @@
   function offer() { return !installed && E.kind !== 'app' && (E.kind !== 'desktop' || !!deferred); }
   function label() {
     if (deferred) return '설치';
-    if (E.kind === 'android-inapp') return E.app === 'line' ? '브라우저로 열기' : '크롬에서 열기';
+    if (E.kind === 'android-inapp') return E.app === 'line' ? '브라우저로 열기' : outer().btn;
     if (E.kind === 'ios-inapp' && E.app === 'line') return 'Safari로 열기';
     return '설치 방법';
   }
@@ -171,9 +173,15 @@
     }
     guide();
   }
+  // Android 인앱에서 옮겨 갈 브라우저: 갤럭시 = 삼성 인터넷(기본 설치) · 그 밖 = Chrome. iPhone 은 늘 Safari(iosInappSteps)
+  function outer() {
+    return E.galaxy
+      ? { name: '삼성 인터넷', to: '삼성 인터넷으로', pkg: 'com.sec.android.app.sbrowser', icon: SVG.samsung, btn: '삼성 인터넷에서 열기', menu: '삼성 인터넷으로 열기', install: '아래 <b>≡</b> →<br>「<b>현재 페이지 추가</b>」 → 「홈 화면」' }
+      : { name: 'Chrome', to: 'Chrome으로', pkg: 'com.android.chrome', icon: SVG.chrome, btn: '크롬에서 열기', menu: 'Chrome으로 열기', install: 'Chrome에서<br>「<b>설치</b>」' };
+  }
   function intentUrl() {
     const u = new URL(carryUrl());
-    return 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(u.href) + ';end';
+    return 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=https;package=' + outer().pkg + ';S.browser_fallback_url=' + encodeURIComponent(u.href) + ';end';
   }
   // 넘어가지 못하고 그대로 남아 있으면 1.5초 뒤 손으로 하는 길을 보여 줌.
   // 그 사이 「닫기」 를 누르면(또는 다시 누르면) 예약을 지움 — 닫았는데 안내가 저절로 다시 떠 게임을 가리던 것
@@ -192,6 +200,8 @@
     share: '<svg class="ia-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M6 11H5v10h14V11h-1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     add: '<svg class="ia-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
     compass: '<svg class="ia-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#e3f2ff" stroke="#2f7ad8" stroke-width="2"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z" fill="#e8566b"/></svg>',
+    // 삼성 인터넷 자리 표시(행성 + 고리) — 상표 그림이 아니라 「보라 행성」 힌트
+    samsung: '<svg class="ia-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="#7a5cf0"/><ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#c9b8ff" stroke-width="1.8" transform="rotate(-25 12 12)"/><circle cx="9.5" cy="9.5" r="2" fill="#fff" opacity=".85"/></svg>',
     chrome: '<svg class="ia-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#e8566b"/><path d="M12 12 3.8 16.7A9.5 9.5 0 0 0 12 21.5z" fill="#ffd34d"/><path d="M12 12h9.4a9.5 9.5 0 0 1-9.4 9.5z" fill="#7ccf6a"/><circle cx="12" cy="12" r="4" fill="#5aa7ee" stroke="#fff" stroke-width="1.6"/></svg>',
   };
   const step = (n, pic, cap) => '<li class="ia-step"><div class="ia-shot">' + pic + '</div><p><b>' + n + '</b> ' + cap + '</p></li>';
@@ -215,8 +225,8 @@
     return '<ol class="ia-steps">' +
       step(1, topBar('<span>✕</span>', '<span class="ia-hl">' + SVG.kebab + '</span>') + page, '오른쪽 위 ' + SVG.kebab + (inapp ? '<br><small>또는 ' + SVG.dots + '</small>' : '')) +
       (inapp
-        ? step(2, menu([['링크 복사'], ['다른 브라우저로 열기', 1]]), '「<b>다른 브라우저로 열기</b>」<br><small>또는 「Chrome으로 열기」</small>') +
-          step(3, '<div class="ia-big">' + SVG.chrome + '</div>', 'Chrome에서<br>「<b>설치</b>」')
+        ? step(2, menu([['링크 복사'], ['다른 브라우저로 열기', 1]]), '「<b>다른 브라우저로 열기</b>」<br><small>또는 「' + outer().menu + '」</small>') +
+          step(3, '<div class="ia-big">' + outer().icon + '</div>', outer().install)
         : step(2, menu([['새 탭'], [SVG.add + ' 앱 설치', 1]]), '「<b>앱 설치</b>」 또는<br>「<b>홈 화면에 추가</b>」') +
           step(3, '<div class="ia-bar"><span></span><b>앱 설치</b><span class="ia-hl">설치</span></div>' + iconPrev(), '「<b>설치</b>」 하면 끝')) +
       '</ol>' + (which ? '' : E.browser === 'samsung' ? '<p class="ia-sub">삼성 인터넷: 아래 <b>≡</b> → 「현재 페이지 추가」 → 「홈 화면」</p>' : '');
@@ -266,10 +276,11 @@
         '<p class="ia-sub">메뉴가 안 보이면 「주소 복사」 → Safari 주소창에 붙여 넣기</p>';
       acts = '<button class="' + esc(B) + '" data-ia="copy" data-ia-focus>🔗 주소 복사</button>';
     } else if (E.kind === 'android-inapp') {
-      body = '<p class="ia-sub"><b>' + nm + '</b> 안에서는 설치가 안 돼요 — <b>Chrome으로 옮겨서</b> 설치해요.</p>' +
-        (chromeFailed ? '<p class="ia-warn">Chrome으로 바로 넘어가지 못했어요 — 아래처럼 손으로 옮겨 주세요</p>' : '') +
+      const O = outer();
+      body = '<p class="ia-sub"><b>' + nm + '</b> 안에서는 설치가 안 돼요 — <b>' + O.to + ' 옮겨서</b> 설치해요.</p>' +
+        (chromeFailed ? '<p class="ia-warn">' + O.to + ' 바로 넘어가지 못했어요 — 아래처럼 손으로 옮겨 주세요</p>' : '') +
         androidMenuSteps(true);
-      acts = '<button class="' + esc(B) + '" data-ia="chrome" data-ia-focus>' + SVG.chrome + ' 크롬에서 열기</button><button class="' + esc(B2) + '" data-ia="copy">🔗 주소 복사</button>';
+      acts = '<button class="' + esc(B) + '" data-ia="chrome" data-ia-focus>' + O.icon + ' ' + O.btn + '</button><button class="' + esc(B2) + '" data-ia="copy">🔗 주소 복사</button>';
     } else if (E.kind === 'ios') {
       body = iosShareSteps() + (E.browser !== 'safari' ? '<p class="ia-sub">공유에 「홈 화면에 추가」 가 없으면 <b>Safari</b>에서 열어 주세요</p>' : '');
     } else if (E.kind === 'android') {
