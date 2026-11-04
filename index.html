@@ -110,6 +110,9 @@ button.pill:active:not([disabled]){transform:var(--b-push);box-shadow:inset 0 -1
 .side-links .btn{flex:1}
 
 .fan{font-size:11px;color:var(--mute);text-align:center;line-height:1.3;padding:0 4px}
+.fan a,.maker a{color:#2f7ad8;font-weight:bold;text-decoration:none}
+.sheet .maker{margin-top:2px}
+.sheet .maker a{display:inline-block;padding:9px 6px;margin:-9px 0}   /* 누르는 자리 36px 이상 (글자 줄은 그대로) */
 
 /* 판 위에 뜨는 글 */
 #banner{position:absolute;left:0;right:0;top:70%;text-align:center;pointer-events:none;font:26px var(--f-b);color:#fff;
@@ -431,7 +434,7 @@ body[data-lay="phone"] .tool{min-width:0}
       <div class="side-links"><button class="btn sky small" id="codexBtn2">도감 · 규칙</button></div>
     </aside>
   </main>
-  <footer class="fan">비영리 팬 게임 · 치이카와 © nagano · 공식과 관련 없음 · 캐릭터 그림은 팬이 만든 도트 시트(공식 그림 아님)</footer>
+  <footer class="fan">비영리 팬 게임 · 만든 사람 <a href="https://www.instagram.com/zun_it_/" target="_blank" rel="noopener">@zun_it_</a> · 치이카와 © nagano · 공식과 관련 없음 · 캐릭터 그림은 팬이 만든 도트 시트(공식 그림 아님)</footer>
 </div>
 
 <div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>

@@ -1277,6 +1277,8 @@
       '<div class="cover" role="img" aria-label="표지 — 들판 너머 괴물 무리"></div>' +
       '<h1>치이카와 <em>랜덤</em> 디펜스</h1>' +
       '<div class="sub">들판 토벌대 · 비영리 팬 게임</div>' +
+      // 만든 사람 — 누르면 인스타 프로필 (인스타 인앱에선 바로 프로필로)
+      '<div class="sub maker">만든 사람 <a href="https://www.instagram.com/zun_it_/" target="_blank" rel="noopener">@zun_it_</a></div>' +
       // 난이도 · 시작을 위로 — 인스타 DM(세로 약 650px)에서 스크롤 없이 첫 화면에 「시작하기」 가 보이게. 규칙은 그 아래(첫 판 안내가 다시 알려 줌)
       diffBox() +
       '<div class="row-btns"><button class="btn" id="startBtn">시작하기</button><button class="btn sky" id="codexBtn">도감 · 규칙</button></div>' +

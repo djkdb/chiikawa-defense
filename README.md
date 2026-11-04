@@ -1,5 +1,7 @@
 # 치이카와 랜덤 디펜스 (비영리 팬 게임)
 
+만든 사람: [@zun_it_](https://www.instagram.com/zun_it_/) (시작 화면 · 아래 고지 줄에도 표시)
+
 빌드 없는 정적 HTML + JS (Canvas 2D). `index.html` 을 열면 끝. 치이카와 © nagano · 공식과 관련 없음.
 
 ```
