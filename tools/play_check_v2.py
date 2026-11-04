@@ -268,6 +268,11 @@ def run_device(pw, base, name, viewport, mobile, speed, seed):
         D.press("#pauseBtn")
         D.press("#quitBtn")
         pg.wait_for_timeout(300)
+    else:
+        # 확인 봇은 합성이 서툴러 친구 9명(짝이 덜 남)일 때 쉬움도 가끔 짐 — 그 판은 결과 화면에서 처음으로 돌아가 다음 확인을 이어 감
+        pg.wait_for_timeout(1500)
+        D.press("#homeBtn")
+        pg.wait_for_timeout(300)
     # 3) 신화 레시피 (판 준비만 test, 누르기는 진짜)
     D.press(".diff[data-i='1']")
     D.press("#startBtn")
