@@ -432,6 +432,8 @@
           if (e.trait && MON.ready) {
             const act = e.trait === 'split' ? (e.small ? 'small' : 'split') : 'down';
             view.fx.push({ type: 'corpse', grp: 'mon', name: e.trait, act, x: X, y: Y, flip: facesRight(e.dir), t: 0, life: e.trait === 'split' && !e.small ? 0.5 : 0.55 });
+          } else if (!e.trait && e.kind !== 'boss' && MON.ready && MON.basic[e.kind]) {
+            view.fx.push({ type: 'corpse', grp: 'basic', name: e.kind, act: 'down', x: X, y: Y, flip: facesRight(e.dir), t: 0, life: 0.5 });
           }
           if (!pfx('poof', X, Y + 10)) view.fx.push({ type: 'poof', x: X, y: Y - 4, t: 0, life: 0.3, r: e.kind === 'boss' ? 26 : 10 });
           if (e.kind === 'boss') { pfx('crit', X, Y + 15); pfx('poof', X - 10, Y + 14, { delay: 0.08 }); pfx('poof', X + 10, Y + 14, { delay: 0.16 }); }
@@ -629,8 +631,14 @@
       if (ph === 'cast') return { f: MON.frame('boss', e.bt, 'cast', k), face: true };
       return { f: MON.frame('boss', e.bt, 'walk', k), flip: facesRight(e.dir) };
     }
-    if (!e.trait) return null;
     const flip = facesRight(e.dir);
+    // 특성 없는 기본 악당(꼬물이 · 단단이 · 졸개): basic 시트 — 없으면 null 로 예전 그린 괴물
+    if (!e.trait) {
+      const B = MON.basic && MON.basic[e.kind];
+      if (!B) return null;
+      if (view.bigHit.get(e.id) > 0) return { f: MON.frame('basic', e.kind, 'hit', 0), flip };
+      return { f: MON.frame('basic', e.kind, 'walk', Math.floor(t * (e.kind === 'minion' ? 10 : e.kind === 'tank' ? 6 : 8) + e.id)), flip };
+    }
     if (e.downT > 0) {
       const k = 1 - e.downT / TR.revive.downT;
       return { f: MON.frame('mon', 'revive', k < 0.6 ? 'down' : 'rise', 0), flip, ghost: k < 0.6 };

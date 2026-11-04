@@ -13,7 +13,7 @@ js/sfx.js           효과음 — Web Audio 로 그 자리에서 합성 (잡음 
 js/pfxlayer.js      픽셀 효과 층 — js/pfx/ 의 pixelfx 효과를 판 위에 얹음 (module · 못 받아도 게임은 예전 효과로)
 js/pfx/             patch-gg/pixelfx(MIT) 에서 옮겨 온 core + 효과 9개. 손으로 고치지 않음 — NOTICE.md
 assets/chars/       친구 8명 시트 프레임 (chars_manifest.py)
-assets/monsters/    괴물 특성 5종 · 보스 4종 프레임 (tools/monsters_slice.py)
+assets/monsters/    기본 악당 3종 · 괴물 특성 5종 · 보스 4종 프레임 (tools/monsters_slice.py)
 assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤불 · 괴물 굴 …) (tools/tiles_slice.py)
 assets/bg/          배경 맵(낮 들판 · 밤 숲) · 표지 (tools/tiles_slice.py)
 js/tiles.js         타일로 판 바닥 · 위 여백 띠 굽기 (못 받으면 art.js 의 예전 바닥)
@@ -115,6 +115,8 @@ UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 
 
 - 친구 8명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py`).
 - 특성 괴물 · 보스: 사람이 만든 초록 바탕 시트(`tools/sheets/monsters.webp` · `bosses.webp`)를 `tools/monsters_slice.py` 로 잘라 `assets/monsters/`.
+  기본 악당(특성 없음)도 `tools/sheets/basic.webp` 에서: 꼬물이 = 가위바위보 · 단단이 = 피망 고기말이 · 졸개 = 오멘 키메라 (못 받으면 art.js 의 예전 그림).
+  보스 셔플 · 회복 줄은 다시 받은 한 줄 시트(`bosses_shuffle.webp` · `bosses_heal.webp`, 도구의 `ROW_SHEET`).
   2026-11-04 부터 원작 『치이카와』 괴물로: 고속 = 중지데스 · 장갑 = 아미아브라 · 재생 = 간장 문어 · 분열 = 생크림 · 부활 = 분홍 키메라 / 보스 침묵 = 세이렌 · 소환 = 아노코 · 회복 = 큰 새 · 셔플 = 두부 의태형.
   시트를 바꾸면 초록 틈을 다시 재서 `MON_ROWS` · `BOSS_ROWS` 의 칸 경계를 고치고, 파일 이름이 같으므로 `sw.js` 의 `VERSION` 을 올림.
   크로마키는 「초록 정도」 gn = G − max(R,B) 로 키를 좁게(185 이상 투명, 130 이하 불투명) 잡아서 재생 괴물 잎(≈70) · 부활 쓰러짐 초록 유령(≈95~120) · 회복 보스 연두 빛을 지우지 않습니다.

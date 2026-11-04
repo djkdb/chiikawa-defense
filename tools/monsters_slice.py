@@ -8,7 +8,9 @@
       고속 = 중지데스: 걷기 6 · 맞음 · 쓰러짐 / 장갑 = 아미아브라: 걷기 6 · 맞음 · 쓰러짐 / 재생 = 간장 문어: 걷기 5 · 회복 반짝 · 맞음 · 쓰러짐
       분열 = 생크림: 걷기 6 · 갈라짐 2 · 작은 것 2 / 부활 = 분홍 키메라: 걷기 6 · 쓰러짐(초록 반투명) · 다시 일어남
   tools/sheets/bosses.webp — 보스 4줄 × 8칸: 침묵 = 세이렌 · 소환 = 아노코 · 회복 = 큰 새 · 셔플 = 두부 의태형.
-      셔플 줄은 다시 받은 한 줄 시트 tools/sheets/bosses_shuffle.webp 에서 읽음(ROW_SHEET).
+      셔플 · 회복 줄은 다시 받은 한 줄 시트 tools/sheets/bosses_shuffle.webp · bosses_heal.webp 에서 읽음(ROW_SHEET).
+  tools/sheets/basic.webp — 특성 없는 기본 악당 3줄: 꼬물이 = 가위바위보 · 단단이 = 피망 고기말이(걷기 6 · 맞음 · 쓰러짐) ·
+      졸개 = 오멘 키메라(걷기 4 · 맞음 · 쓰러짐). 단단이는 크게(키 31) · 졸개는 긴 귀까지 키라 몸이 작아 보이지 않게 30.
       앞 4칸 걷기(0 = 정면, 1~3 = 왼쪽을 봄), 5·6칸 = 기술 준비, 7·8칸 = 쓰는 중.
   칸 경계는 시트를 바꿀 때마다 초록 틈(그림이 없는 세로줄)을 재서 아래 MON_ROWS · BOSS_ROWS 에 적음.
 
@@ -55,11 +57,17 @@ MON_ROWS = {
 BOSS_ROWS = {
     "silence": (80, 273, [112, 295, 469, 633, 802, 976, 1146, 1337, 1530]),
     "summon":  (301, 497, [112, 290, 467, 635, 815, 990, 1166, 1340, 1530]),
-    "heal":    (532, 740, [112, 292, 463, 633, 816, 986, 1154, 1342, 1530]),
+    "heal":    (190, 462, [140, 375, 589, 817, 1058, 1287, 1509, 1751, 1990]),   # 따로 받은 한 줄 시트(ROW_SHEET)
     "shuffle": (210, 460, [140, 364, 606, 805, 1051, 1299, 1520, 1751, 1990]),   # 따로 받은 한 줄 시트(ROW_SHEET)
 }
 # 줄 하나만 다시 받은 경우: 그 줄은 이 파일에서 읽음 (좌표도 그 파일 기준)
-ROW_SHEET = {"shuffle": "bosses_shuffle.webp"}
+ROW_SHEET = {"shuffle": "bosses_shuffle.webp", "heal": "bosses_heal.webp"}
+# 특성 없는 기본 악당 (tools/sheets/basic.webp, 2026-11-04): 꼬물이 = 가위바위보 · 단단이 = 피망 고기말이 · 졸개 = 오멘 키메라
+BASIC_ROWS = {
+    "blob":   (154, 334, [140, 303, 480, 648, 818, 992, 1161, 1345, 1530], ["walk"] * 6 + ["hit", "down"]),
+    "tank":   (449, 633, [140, 294, 478, 648, 820, 996, 1156, 1331, 1530], ["walk"] * 6 + ["hit", "down"]),
+    "minion": (728, 913, [140, 300, 472, 643, 813, 984, 1170], ["walk"] * 4 + ["hit", "down"]),
+}
 BOSS_NAMES = ["front", "walk", "walk", "walk", "ready", "ready", "cast", "cast"]
 
 
@@ -172,8 +180,8 @@ def scale_rgba(arr, k):
 
 # 원래 초록(잎 · 초록 유령 · 연두 빛)이 있는 줄 → 그 프레임 이름들(None = 줄 전체). 부활은 쓰러짐(초록 유령)만 —
 # 걷기·일어남의 하늘색 꼬리는 전부 깎아야 청록으로 물들지 않음
-GREEN = {"fast": None, "regen": {"heal"}, "heal": None, "revive": {"down"}}   # fast = 연두색 중지데스(원래 초록을 지킴)
-ROW_H = {"split": 25, "shuffle": 50}                        # 분열(생크림)은 넓적해서 · 셔플(두부)은 키에 긴 팔까지 들어가 조금 낮춤 (칸 폭 · 다른 보스 크기를 넘지 않게)
+GREEN = {"fast": None, "tank": None, "regen": {"heal"}, "heal": None, "revive": {"down"}}   # fast = 연두색 중지데스 · tank = 초록 피망(원래 초록을 지킴)
+ROW_H = {"split": 25, "shuffle": 50, "tank": 31, "minion": 30}                        # 분열(생크림)은 넓적해서 · 셔플(두부)은 키에 긴 팔까지 들어가 조금 낮춤 (칸 폭 · 다른 보스 크기를 넘지 않게)
 
 
 def slice_rows(sheet, rows, names_of, target_h, prefix):
@@ -257,16 +265,17 @@ def main():
         p.unlink()
     mon, d1 = slice_rows(SHEETS / "monsters.webp", MON_ROWS, lambda s: s[3], MON_H, "m_")
     boss, d2 = slice_rows(SHEETS / "bosses.webp", BOSS_ROWS, lambda s: BOSS_NAMES, BOSS_H, "b_")
+    basic, d3 = slice_rows(SHEETS / "basic.webp", BASIC_ROWS, lambda s: s[3], MON_H, "e_")
     js = (
-        "/* 괴물 특성 5종 · 보스 4종 프레임 목록 — tools/monsters_slice.py 가 씁니다(손으로 고치지 말 것).\n"
+        "/* 기본 악당 3종 · 괴물 특성 5종 · 보스 4종 프레임 목록 — tools/monsters_slice.py 가 씁니다(손으로 고치지 말 것).\n"
         "   그림: 사람이 만든 초록 바탕 시트(tools/sheets/)를 자른 PNG. 시트 괴물 · 보스 걷기 모두 왼쪽을 봅니다.\n"
         "   f = 파일, w·h = 크기(px), ax·ay = 발 기준점(px), k = 그림 1px 의 도트 수. */\n"
-        f"window.CD_MON_FILES = {json.dumps({'k': round(1 / DOTS, 6), 'mon': mon, 'boss': boss}, ensure_ascii=False, separators=(',', ':'))};\n"
+        f"window.CD_MON_FILES = {json.dumps({'k': round(1 / DOTS, 6), 'mon': mon, 'boss': boss, 'basic': basic}, ensure_ascii=False, separators=(',', ':'))};\n"
     )
     (OUT / "monsters.js").write_text(js)
     print("monsters.js 씀 ·", len(list(OUT.glob('*.png'))), "장")
     if a.board:
-        board({**d1, **d2}, a.board)
+        board({**d3, **d1, **d2}, a.board)
 
 
 if __name__ == "__main__":
