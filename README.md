@@ -12,7 +12,7 @@ js/mon.js           특성 괴물 · 보스 시트 프레임 불러오기 (asset
 js/sfx.js           효과음 — Web Audio 로 그 자리에서 합성 (잡음 「쉭」 없음)
 js/pfxlayer.js      픽셀 효과 층 — js/pfx/ 의 pixelfx 효과를 판 위에 얹음 (module · 못 받아도 게임은 예전 효과로)
 js/pfx/             patch-gg/pixelfx(MIT) 에서 옮겨 온 core + 효과 9개. 손으로 고치지 않음 — NOTICE.md
-assets/chars/       친구 8명 시트 프레임 (chars_manifest.py)
+assets/chars/       친구 9명 시트 프레임 (chars_manifest.py · 카니는 한 줄 시트 tools/row_char_slice.py)
 assets/monsters/    기본 악당 3종 · 괴물 특성 5종 · 보스 4종 프레임 (tools/monsters_slice.py)
 assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤불 · 괴물 굴 …) (tools/tiles_slice.py)
 assets/bg/          배경 맵(낮 들판 · 밤 숲) · 표지 (tools/tiles_slice.py)
@@ -60,6 +60,7 @@ manifest.webmanifest  설치 정보(이름 · 아이콘 · 전체 화면 · 세�
   빠진 재료는 **남는 전설 + 클로버 1개**로 바꿀 수 있음(운에만 맡기지 않도록 — sim 에서 이게 없으면 신화가 거의 안 나왔음).
 - **3택 보상** — 보스를 잡으면 카드 셋(확정 2 + 도박 1) 중 하나, 고르는 동안 시간이 멈춤. 확정: 동전 주머니 · 클로버 +2 · 영웅 초대장 · 힘내기 응원(공격력 +12%) · 소환 할인 · 울타리 보수(한도 +4). 도박: 반짝 상자(50% 전설) · 동전 뒤집기(두 배/절반) · 두근 강화(60% 등급 +1 / 40% 사라짐).
 - **이자** — 웨이브가 넘어갈 때 지금 동전의 5% (최대 30).
+- **카니** (9번째 친구, 2026-11-04): 한 번씩 책으로 콩 · 5번째마다 「책 내리치기!」 2.5배 + 0.9초 멈춤(보스는 30%만). 한 줄 시트라 투사체 · 효과 그림은 게임 기본 효과.
 - **같은 친구 시너지** — 판에 2명 이상 +10%, 4명 이상 +25% (고른 친구 설명에 보임).
 - **무한 모드** — 20웨이브 클리어 화면의 「무한 모드로 계속」. 웨이브 시간 제한 없음, 보스 기술은 순환, 난이도별 무한 최고 웨이브 기록.
 - **손맛** (보이기만 — 규칙 · 밸런스엔 영향 없음): 타격 멈칫(보스 치명 · 합성 · 보스 처치 · 신화 때 규칙 시간을 0.03~0.25초 세움) · 화면 흔들림 · 피해가 클수록 큰 숫자 ·
@@ -113,7 +114,7 @@ UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 
 
 ## 그림
 
-- 친구 8명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py`).
+- 친구 9명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py` · 카니는 `tools/row_char_slice.py`).
 - 특성 괴물 · 보스: 사람이 만든 초록 바탕 시트(`tools/sheets/monsters.webp` · `bosses.webp`)를 `tools/monsters_slice.py` 로 잘라 `assets/monsters/`.
   기본 악당(특성 없음)도 `tools/sheets/basic.webp` 에서: 꼬물이 = 가위바위보 · 단단이 = 피망 고기말이 · 졸개 = 오멘 키메라 (못 받으면 art.js 의 예전 그림).
   보스 셔플 · 회복 줄은 다시 받은 한 줄 시트(`bosses_shuffle.webp` · `bosses_heal.webp`, 도구의 `ROW_SHEET`).

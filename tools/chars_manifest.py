@@ -24,6 +24,8 @@ CH = ROOT / "assets" / "chars"
 #   스킬 줄: 2 회오리 무기 · 3 바람 · 6 빛 고리 · 7 금빛 기운 (0 반짝 · 1 음표 · 4 큰 하트 · 5 응원은 공격 느낌이 아니라 뺌)
 #   공격 이펙트 줄: 0 별 터짐 · 1 초승달 베기 · 2 폭발 · 3 소용돌이 · 4 반짝이 · 5 돌진 · 6 원 · 7 솟구침
 GREEN = ["chiikawa", "hachiware", "usagi", "shisa", "momonga", "rakko", "pungdengi", "kurimanju"]
+# 한 줄(8칸) 시트 친구 — tools/row_char_slice.py 가 assets/chars/<id>/entry.json 을 씀 (투사체 · 효과 그림 없음 → 게임 기본 효과)
+ROW = ["kani"]
 G_ATTACK = [3, 4, 5, 6]
 G_SKILL = [2, 3, 6, 7]
 G_SHOT = 5            # 돌진(오른쪽으로 날아가는 혜성) — 게임이 날아가는 방향으로 돌림(aim)
@@ -61,6 +63,8 @@ def main():
     ap.add_argument("--board", metavar="PNG", help="고른 프레임을 한 장으로 펴서 여기 저장")
     a = ap.parse_args()
     out = {nm: green(nm) for nm in GREEN}
+    for nm in ROW:
+        out[nm] = json.loads((CH / nm / "entry.json").read_text())
     js = (
         "/* 캐릭터 프레임 목록 — tools/chars_manifest.py 가 씁니다(손으로 고치지 말고 그 파일의 G_* 를 고친 뒤 다시 실행).\n"
         "   그림: 사람이 만든 초록 바탕 팬 도트 시트를 자른 PNG(공식 그림 아님) — _chiikawa_tools/slice_green.py.\n"
@@ -76,7 +80,7 @@ def main():
         n = max(len(v["idle"]) + len(v["attack"]) + len(v["skill"]) + 3 for _, v in rows)
         img = Image.new("RGBA", (cw * n, cw * len(rows)), (201, 229, 166, 255))
         for r, (name, v) in enumerate(rows):
-            items = [v["portrait"]] + v["idle"] + v["attack"] + v["skill"] + [x for x in (v["shot"], v["fx"]) if x]
+            items = [v["portrait"]] + v["idle"] + v["attack"] + v["skill"] + [x for x in (v.get("shot"), v.get("fx")) if x]
             for c, e in enumerate(items):
                 im = Image.open(CH / e["f"]).convert("RGBA")
                 k = (2 if e is v["portrait"] else S) * e.get("k", 1)

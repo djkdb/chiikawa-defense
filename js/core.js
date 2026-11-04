@@ -631,6 +631,7 @@
     }
     if (!tgt || tgt.downT > 0) return;
     if (c.kind === 'poison') this.poison(tgt, 1, p.dmg, c);
+    if (sk && sk.stun) tgt.stunT = Math.max(tgt.stunT, sk.stun * (tgt.kind === 'boss' ? sk.stunBoss : 1));   // 카니 책 내리치기
     this.hurt(tgt, p.dmg, p.ch, { crit: p.crit, kind: c.kind, skill: !!sk });
   };
 

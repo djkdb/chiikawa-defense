@@ -117,6 +117,9 @@
         desc: '맞히면 독이 쌓임 (최대 5겹)', skill: { every: 5, x: 1, splash: 1.2, stacks: 3, name: '네잎 독풀!', desc: '5번째마다 주변 괴물에 독 3겹' } },
       { id: 'kurimanju', name: '쿠리만쥬', dmg: 5, rate: 0.8, range: 2.0, kind: 'single', aura: 1.5, haste: [0.15, 0.2, 0.28, 0.4],
         desc: '바로 옆 친구들 공격 속도 +15~40%', skill: { every: 6, x: 2, haste: 0.5, hasteT: 3, name: '건배!', desc: '6번째마다 옆 친구들 3초간 공속 +50%' } },
+      // 카니(한 줄 시트, tools/row_char_slice.py): 책으로 내리쳐 멈춰 세움 — 보스는 짧게(stunBoss 배)
+      { id: 'kani',      name: '카니', dmg: 8, rate: 0.85, range: 2.1, kind: 'single',
+        desc: '책으로 콩 · 가끔 괴물을 멈춰 세움', skill: { every: 5, x: 2.5, stun: 0.9, stunBoss: 0.3, name: '책 내리치기!', desc: '5번째마다 2.5배 · 0.9초 멈춤' } },
     ],
 
     // 강화 — 등급 계열마다 따로 (합성하면 친구가 무작위로 바뀌므로 친구가 아니라 등급에 붙입니다).
