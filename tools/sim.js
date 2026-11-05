@@ -31,19 +31,7 @@ function smart(g, o) {
   }
   for (const r of g.readyRecipes()) g.craft(r);
   mergeAll(g);
-  // 신화: 빠진 재료를 남는 전설 + 클로버로 채울 수 있는 레시피가 있으면 채워서 만듦
-  const legends = g.slots.filter((s) => s.u && s.u.g === T.mergeTop).length;
-  if (o.luck !== false && legends >= 3) {
-    T.recipes.forEach((_, r) => {
-      const N = g.recipeNeed(r);
-      if (N.miss.length && N.miss.length <= N.spare.length && g.clovers >= N.miss.length * T.luck.swap) {
-        while (g.recipeNeed(r).miss.length) if (!g.swapFor(r).ok) break;
-      }
-      if (g.recipeSlots(r)) g.craft(r);
-    });
-  }
-  // 전설이 둘 이상이면 클로버는 신화 재료 바꾸기용으로 아껴 둠
-  if (o.luck !== false && g.clovers > (legends >= 2 ? 2 : 0) && g.empty().length) {
+  if (o.luck !== false && g.clovers > 0 && g.empty().length) {
     // 전설 칸은 실패가 쌓일수록 좋아짐 — 초반엔 영웅, 12웨이브부터 전설
     g.gamble(g.wave >= 12 ? 2 : 1);
   }

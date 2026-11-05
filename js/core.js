@@ -272,19 +272,6 @@
     this.slots.forEach((s, j) => { if (!used.has(j) && s.u && s.u.g === T.mergeTop) spare.push(j); });
     return { miss, spare, have: Array.from(used) };
   };
-  // 클로버로 「남는 전설」 하나를 레시피에 빠진 친구로 바꾸기 — 운에만 맡기지 않고 신화를 노릴 길
-  G.swapFor = function (r) {
-    if (this.over) return { ok: false, why: '끝난 판' };
-    const N = this.recipeNeed(r);
-    if (!N.miss.length) return { ok: false, why: '재료가 다 있어요 — 만들기를 눌러요' };
-    if (!N.spare.length) return { ok: false, why: '바꿀 전설이 하나 더 있어야 해요' };
-    if (this.clovers < T.luck.swap) return { ok: false, why: '클로버가 ' + T.luck.swap + '개 필요해요' };
-    this.clovers -= T.luck.swap;
-    const i = N.spare[0], u = this.slots[i].u, was = u.ch;
-    this.slots[i].u = this.newUnit(N.miss[0], u.g);
-    this.emit('swap', { slot: i, ch: N.miss[0], was });
-    return { ok: true, slot: i };
-  };
   G.readyRecipes = function () { const o = []; T.recipes.forEach((_, r) => { if (this.recipeSlots(r)) o.push(r); }); return o; };
   G.craft = function (r) {
     if (this.over) return { ok: false, why: '끝난 판' };

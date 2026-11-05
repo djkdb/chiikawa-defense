@@ -256,14 +256,6 @@
           setTimeout(() => { parts(X, Y - 6, ['#fff3b0', '#ffd36a', '#ffffff'], 16, 40); S.play('thud'); }, 200);
           break;
         }
-        case 'swap': {
-          const u = g.slots[e.slot].u, p = slotXY(e.slot);
-          if (u) { an(u).pop = 1; an(u).flash = 1; }
-          sparks(p.x, p.y, 'legend', 10, 12);
-          text(p.x, p.y - 20, CH[e.was].name + ' → ' + CH[e.ch].name, '#fff3b0', 7, { life: 1.2, vy: -10 });
-          S.play('luckwin');
-          break;
-        }
         case 'gamble': S.play(e.win ? 'luckwin' : 'lucklose'); break;
         case 'odds': toast('소환 확률 Lv' + e.lv + ' — ' + oddsText()); S.play('up'); break;
         case 'interest': lastInterest = e.coins; break;
@@ -1449,7 +1441,7 @@
   function mythScreen(msg) {
     if (phase === 'play') phase = 'pause';
     const r = rec(), F = found(r);
-    let h = '<h2>신화 레시피</h2><p class="sub">서로 다른 <b>전설</b> 셋 → 신화 하나. 판에 있는 전설 재료는 이름이 보여요. 빠진 재료는 <b>남는 전설 + 클로버 ' + T.luck.swap + '개</b>로 바꿀 수 있어요.</p><div class="recipes">';
+    let h = '<h2>신화 레시피</h2><p class="sub">서로 다른 <b>전설</b> 셋 → 신화 하나. 판에 있는 전설 재료는 이름이 보여요. 전설은 합성 · 행운 소환으로 모아요.</p><div class="recipes">';
     T.recipes.forEach((R, i) => {
       const N = g.recipeNeed(i), known = F.includes(i), ready = !N.miss.length;
       const onBoard = (ch) => !N.miss.includes(ch);
@@ -1457,8 +1449,7 @@
       h += '<div class="recipe' + (ready ? ' ready' : '') + '"><div class="rhead" id="rpor' + i + '"></div><div class="rbody"><b>' + (known ? '신화 ' + CH[R.need[0]].name + ' 「' + R.myth.name + '」' : '??? 신화') + '</b>' +
         '<span class="rdesc">' + (known ? R.myth.desc : '만들면 알 수 있어요') + '</span><div class="ings">' + ing + '</div>' +
         '<div class="ract">' + (ready ? '<button class="btn small pink" id="craft' + i + '"' + (g.over ? ' disabled' : '') + '>만들기!</button>'
-          : N.miss.length === R.need.length && !N.spare.length ? '<small>전설 ' + N.miss.length + '명이 더 필요해요</small>'   // 아직 전설이 없으면 꺼진 버튼을 늘어놓지 않음
-          : '<button class="btn small" id="swap' + i + '"' + (N.spare.length && g.clovers >= T.luck.swap && !g.over ? '' : ' disabled') + '>빠진 재료 채우기 ' + CLOVER + '' + T.luck.swap + '</button><small>' + (N.spare.length ? '남는 전설 ' + N.spare.length : '남는 전설 없음') + ' · 빠짐 ' + N.miss.length + '</small>') +
+          : '<small>전설 ' + N.miss.length + '명이 더 필요해요</small>') +
         '</div></div></div>';
     });
     h += '</div><p class="lmsg">' + (msg || '') + '</p><div class="row-btns stick"><button class="btn" id="resumeBtn">계속하기</button></div>';
@@ -1467,13 +1458,12 @@
       const box = $('rpor' + i);
       if (F.includes(i)) { const p = portrait(R.need[0], 46); p.className = 'myth-por'; box.appendChild(p); } else box.textContent = '?';
       btn('craft' + i, () => { const o = g.craft(i); if (o.ok) { close(); phase = 'play'; onEvents(); } else mythScreen(o.why); });
-      btn('swap' + i, () => { const o = g.swapFor(i); if (!o.ok) S.play('nope'); onEventsSound(); mythScreen(o.ok ? '바꿨어요!' : o.why); });
     });
     btn('resumeBtn', () => { close(); phase = 'play'; });
   }
   // 멈춘 동안 생긴 사건: 소리만 내고 판 연출은 다시 시작할 때 (덮개 뒤라 안 보이므로)
   function onEventsSound() {
-    for (const e of g.ev) { if (e.type === 'gamble') S.play(e.win ? 'luckwin' : 'lucklose'); if (e.type === 'swap') S.play('luckwin'); }
+    for (const e of g.ev) { if (e.type === 'gamble') S.play(e.win ? 'luckwin' : 'lucklose'); }
   }
 
   function start() {
