@@ -14,6 +14,7 @@ const CARD = { power: 6, legend: 5, epic: 4.5, coins: 3, clover: 2.6, room: 2.2,
 
 // 확률 업을 사는 웨이브 (레벨 0→1 은 ODDS_AT[0] 웨이브부터)
 const ODDS_AT = [2, 6, 10];
+const SUMMON_V = +(process.env.SUMMON_V || 4);
 function mergeAll(g) {
   for (let k = 0; k < 40; k++) {
     let did = false;
@@ -40,8 +41,9 @@ function smart(g, o) {
   // 확률 업: 정해 둔 웨이브에 한 단계씩, 동전이 넉넉할 때 (많이 사면 오히려 강화가 밀려 약해짐 — sim 으로 확인)
   const oddsAt = o.oddsAt || ODDS_AT;
   if (o.odds !== false && g.oddsLv < oddsAt.length && g.wave >= oddsAt[g.oddsLv] && g.coins >= g.oddsCost() + 20) { g.oddsUp(); return; }
-  // 동전 하나당 늘어나는 힘: 강화 = 그 계열 힘의 20% / 강화값, 소환 = 일반 하나(≈1.3 기대) / 소환값
-  let best = null, bestV = 1.3 / g.cost();
+  // 동전 하나당 늘어나는 힘: 강화 = 그 계열 힘의 dmg 배 / 강화값, 소환 = SUMMON_V / 소환값.
+  // SUMMON_V 는 일반 하나(≈1.3)에 「나중에 합성으로 생기는 값」 을 더한 것 — 1.3 그대로면 강화를 너무 사서 소환이 밀림(2026-11-05)
+  let best = null, bestV = SUMMON_V / g.cost();
   for (let k = 0; k < pow.length; k++) { const v = (T.upgrade.dmg * pow[k]) / g.upCost(k); if (v > bestV) { bestV = v; best = k; } }
   if (best != null) { if (g.coins >= g.upCost(best)) g.upgrade(best); }
   else if (g.empty().length && g.coins >= g.cost()) g.summon();
