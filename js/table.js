@@ -9,6 +9,7 @@
     waves: 20,          // 마지막 웨이브의 보스를 잡으면 클리어 (그 뒤 「무한 모드」 로 이어 갈 수 있음)
     bossEvery: 5,       // 5·10·15·20 웨이브는 보스 (무한 모드에서도 5마다, 기술은 순환)
     waveTime: 20,       // 웨이브 사이 (초)
+    earlyWaves: 4, earlyTime: 12,   // 첫 4웨이브는 12초마다 — 초반 1분 넘게 위험이 없어 인스타로 처음 온 사람이 지루했음 (2026-11-05)
     finalTime: 75,      // 마지막 웨이브 제한 시간 — 그 안에 보스를 못 잡으면 패배 (무한 모드엔 없음)
     cap: 40,            // 길 위 괴물 수 상한(보통) — 난이도마다 diffs[].cap 이 덮어씀
     bossWeight: 10,     // 보스 한 마리는 상한에서 이만큼으로 셉니다
@@ -25,10 +26,10 @@
     // ── 난이도 ── hp = 괴물 체력 배수 · cap = 길 위 한도 · chips = 판마다 붙는 변수 칩 수 [최소, 최대]
     // 쉬움·보통은 처음부터 열림, 바로 아래를 깨면 다음이 열림 (기록은 이 브라우저에만)
     diffs: [
-      { key: 'easy',   name: '쉬움',   hp: 0.72, cap: 50, chips: [0, 0], color: '#7ccf6a', desc: '처음이라면 여기서' },
-      { key: 'normal', name: '보통',   hp: 0.9,  cap: 40, chips: [0, 0], color: '#5aa7ee', desc: '합성 · 강화를 알면' },
-      { key: 'hard',   name: '어려움', hp: 1.15, cap: 40, chips: [1, 1], color: '#ae78ee', desc: '변수 칩 1개 · 확률 업 · 신화가 필요' },
-      { key: 'hell',   name: '지옥',   hp: 1.2,  cap: 30, chips: [1, 2], color: '#e8566b', desc: '변수 칩 1~2개 · 한도 30' },
+      { key: 'easy',   name: '쉬움',   hp: 0.85, cap: 50, chips: [0, 0], color: '#7ccf6a', desc: '처음이라면 여기서' },
+      { key: 'normal', name: '보통',   hp: 1.5, cap: 40, chips: [0, 0], color: '#5aa7ee', desc: '합성 · 강화를 알면' },
+      { key: 'hard',   name: '어려움', hp: 1.7, cap: 40, chips: [1, 1], color: '#ae78ee', desc: '변수 칩 1개 · 확률 업 · 신화가 필요' },
+      { key: 'hell',   name: '지옥',   hp: 1.8, cap: 30, chips: [1, 2], color: '#e8566b', desc: '변수 칩 1~2개 · 한도 30' },
     ],
     // 변수 칩 — 어려움·지옥에서 판마다 무작위로. 시작 화면과 멈춤 화면에 보임
     chips: {
@@ -130,6 +131,7 @@
       hp: 70, hpGrow: 1.197, speed: 1.05,  // 칸/초 · 보통(×1) 기준. 새 기능(확률 업·클로버·신화·보상·이자)만큼 예전(48)보다 단단하게 — 초반은 그대로 두고 뒤로 갈수록 (tools/sim.js 로 맞춤)
       count: (w) => 10 + Math.floor(w * 1.2),
       gap: 0.75,                             // 나오는 간격 (초)
+      hpRamp: 8,                             // 난이도 체력 배수가 다 걸리는 웨이브 (그 전엔 1 → 배수로 고르게)
       kinds: {
         blob: { name: '꼬물이', hp: 1,   speed: 1,    from: 1 },
         tank: { name: '단단이', hp: 2.6, speed: 0.72, from: 7 },

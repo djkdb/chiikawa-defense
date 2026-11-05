@@ -346,7 +346,11 @@
   };
 
   // ── 웨이브 ───────────────────────────────────────────────
-  G.waveHp = function (w) { return T.enemy.hp * Math.pow(T.enemy.hpGrow, w - 1) * this.m.hp; };
+  // 난이도 체력 배수(m.hp)는 1웨이브엔 1 쪽에서 시작해 hpRamp 웨이브에 다 걸림 — 어려운 난이도에서 1분 안에 지는 판이 없게(2026-11-05)
+  G.waveHp = function (w) {
+    const k = Math.min(1, w / T.enemy.hpRamp), m = 1 + (this.m.hp - 1) * k;
+    return T.enemy.hp * Math.pow(T.enemy.hpGrow, w - 1) * m;
+  };
   // 웨이브 특성: from 이 지난 것 중 1개(8웨이브부터 2개). 막 열린 특성은 그 웨이브에 꼭, 바로 앞과 같은 조합은 피함
   G.planWave = function (w) {
     if (this.plan[w]) return this.plan[w];
@@ -384,9 +388,9 @@
     if (boss) q.splice(Math.floor(n / 2), 0, { k: 'boss', t: null });
     this.spawnQ = q;
     this.spawnT = 0;
-    this.tWave = w >= T.waves && !this.endless ? T.finalTime : T.waveTime;
+    this.tWave = w >= T.waves && !this.endless ? T.finalTime : w <= T.earlyWaves ? T.earlyTime : T.waveTime;
     if (w > 1) {
-      // 이자: 지금 가진 동전의 5% (상한) — 웨이브 보상과 같이
+      // 이자: 지금 가진 동전의 rate (상한 cap) — 웨이브 보상과 같이
       const it = Math.min(T.interest.cap, Math.floor(this.coins * T.interest.rate));
       this.coins += T.reward.wave + it;
       this.emit('interest', { coins: it, wave: T.reward.wave });
