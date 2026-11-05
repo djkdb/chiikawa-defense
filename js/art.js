@@ -1,7 +1,7 @@
 /* 그림 — 괴물 · 길 · 바닥 · 투사체 · 아이콘을 여기서 직접 그립니다 (공식 그림 파일 없음).
    방법: 작은 캔버스(1칸 = 32 도트)에 둥근 도형을 그린 뒤 → 반투명 가장자리를 없애고 팔레트 색으로 맞춰(양자화)
    또렷한 도트로 만듭니다. 손으로 도트 배열을 적으면 곡선이 울퉁불퉁해지기 때문.
-   캐릭터만은 그리지 않습니다 — 사람이 준 팬 도트 시트를 자른 `assets/chars/<id>/*.png` (목록은 chars.js) 를 그대로 씁니다.
+   캐릭터만은 그리지 않습니다 — 사람이 ChatGPT 로 만든 팬 도트 시트를 자른 `assets/chars/<id>/*.png` (목록은 chars.js) 를 그대로 씁니다.
    (직접 그린 캐릭터는 「치이카와가 아니야」 라는 말을 들었음. 파일을 못 불러온 경우에만 이름 첫 글자 동그라미) */
 (function () {
   const CD = (window.CD = window.CD || {});
@@ -355,7 +355,7 @@
   // 빛 조각 (터짐·소환) — 네 갈래 반짝이
   const sparkle = (col) => paint(7, 7, [col, '#ffffff'], (x) => { x.fillStyle = col; x.fillRect(3, 0, 1, 7); x.fillRect(0, 3, 7, 1); x.fillStyle = '#ffffff'; x.fillRect(3, 3, 1, 1); x.fillRect(2, 2, 3, 3); x.fillStyle = col; x.fillRect(2, 2, 1, 1); x.fillRect(4, 2, 1, 1); x.fillRect(2, 4, 1, 1); x.fillRect(4, 4, 1, 1); });
 
-  // ── 캐릭터 (사람이 준 시트에서 자른 PNG) ───────────────────
+  // ── 캐릭터 (사람이 ChatGPT 로 만든 시트에서 자른 PNG) ───────────────────
   // CHAR[id] = { portrait, idle[], attack[], skill[], shot, fx, hit, emo{}, real } — 프레임 = { img, w, h, ax, ay(발 기준점, 도트), k }
   // 여덟 명 모두 초록 시트 도트(_chiikawa_tools/slice_green.py): hit(보통 공격이 맞은 자리) · emo(감정 8: joy·cry·love …)가 있고,
   // shot 에 aim(날아가는 방향으로 돌림) · sz(긴 변 도트)가 붙습니다. 빠진 동작은 idle 로 대신합니다.

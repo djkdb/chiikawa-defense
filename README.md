@@ -19,7 +19,7 @@ assets/monsters/    기본 악당 3종 · 괴물 특성 5종 · 보스 4종 프�
 assets/tiles/       판 타일(풀밭 칸 · 흙길) · 소품(울타리 · 덤불 · 괴물 굴 …) (tools/tiles_slice.py)
 assets/bg/          배경 맵(낮 들판 · 밤 숲) · 표지 (tools/tiles_slice.py)
 js/tiles.js         타일로 판 바닥 · 위 여백 띠 굽기 (못 받으면 art.js 의 예전 바닥)
-tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 만든 그림)
+tools/sheets/       괴물 · 보스 · 타일 · 맵 원본 (사람이 ChatGPT 로 만든 그림)
 js/inapp.js         앱으로 설치 안내 · 인앱 브라우저 판별 · 서비스워커 등록 · 기록 옮기기 (게임과 무관 — 다른 게임에 복사해 씀)
 inapp.css           그 안내 창 · 배너 · 토스트 모양 (--ia-* 값 · 게임 키트 클래스를 끼워 씀)
 sw.js               서비스워커 — 오프라인에서도 열리게 (코드 network-first · 그림 stale-while-revalidate)
@@ -117,7 +117,7 @@ UA 는 `js/inapp.js` 에서만, 「어느 앱 안인가」 를 가르는 데만 
 ## 그림
 
 - 친구 9명: `assets/chars/` (다른 작업 — `tools/chars_manifest.py` · 카니는 `tools/row_char_slice.py`).
-- 특성 괴물 · 보스: 사람이 만든 초록 바탕 시트(`tools/sheets/monsters.webp` · `bosses.webp`)를 `tools/monsters_slice.py` 로 잘라 `assets/monsters/`.
+- 특성 괴물 · 보스: 사람이 ChatGPT 로 만든 초록 바탕 시트(`tools/sheets/monsters.webp` · `bosses.webp`)를 `tools/monsters_slice.py` 로 잘라 `assets/monsters/`.
   기본 악당(특성 없음)도 `tools/sheets/basic.webp` 에서: 꼬물이 = 가위바위보 · 단단이 = 피망 고기말이 · 졸개 = 오멘 키메라 (못 받으면 art.js 의 예전 그림).
   보스 셔플 · 회복 줄은 다시 받은 한 줄 시트(`bosses_shuffle.webp` · `bosses_heal.webp`, 도구의 `ROW_SHEET`).
   2026-11-04 부터 원작 『치이카와』 괴물로: 고속 = 중지데스 · 장갑 = 아미아브라 · 재생 = 간장 문어 · 분열 = 생크림 · 부활 = 분홍 키메라 / 보스 침묵 = 세이렌 · 소환 = 아노코 · 회복 = 큰 새 · 셔플 = 두부 의태형.

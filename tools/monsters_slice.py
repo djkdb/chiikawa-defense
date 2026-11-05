@@ -1,9 +1,9 @@
-"""괴물 특성 5종 · 보스 4종 그림을 사람이 준 초록 바탕(#00FF00 크로마키) 시트에서 잘라 assets/monsters/ 에 넣습니다.
+"""괴물 특성 5종 · 보스 4종 그림을 사람이 ChatGPT 로 만든 초록 바탕(#00FF00 크로마키) 시트에서 잘라 assets/monsters/ 에 넣습니다.
 
   python3 tools/monsters_slice.py                      # 자르고 monsters.js 쓰기
   python3 tools/monsters_slice.py --board /tmp/mon.png # + 확대 확인 판 (어두운·밝은 바탕)
 
-재료 (직접 그리지 않음 — 사람이 원작 만화 · 공식 상품 사진을 참고해 만든 시트, 2026-11-04 교체)
+재료 (직접 그리지 않음 — 사람이 원작 만화 · 공식 상품 사진을 참고 이미지로 넣어 ChatGPT 로 만든 시트, 2026-11-04 교체)
   tools/sheets/monsters.webp — 괴물 5줄 × 8칸(분열 줄만 10개). 라벨은 왼쪽 바깥. 시트 괴물은 왼쪽을 봄(속도선 · 먼지가 오른쪽 뒤에).
       고속 = 중지데스: 걷기 6 · 맞음 · 쓰러짐 / 장갑 = 아미아브라: 걷기 6 · 맞음 · 쓰러짐 / 재생 = 간장 문어: 걷기 5 · 회복 반짝 · 맞음 · 쓰러짐
       분열 = 생크림: 걷기 6 · 갈라짐 2 · 작은 것 2 / 부활 = 분홍 키메라: 걷기 6 · 쓰러짐(초록 반투명) · 다시 일어남
@@ -268,7 +268,7 @@ def main():
     basic, d3 = slice_rows(SHEETS / "basic.webp", BASIC_ROWS, lambda s: s[3], MON_H, "e_")
     js = (
         "/* 기본 악당 3종 · 괴물 특성 5종 · 보스 4종 프레임 목록 — tools/monsters_slice.py 가 씁니다(손으로 고치지 말 것).\n"
-        "   그림: 사람이 만든 초록 바탕 시트(tools/sheets/)를 자른 PNG. 시트 괴물 · 보스 걷기 모두 왼쪽을 봅니다.\n"
+        "   그림: 사람이 ChatGPT 로 만든 초록 바탕 시트(tools/sheets/)를 자른 PNG. 시트 괴물 · 보스 걷기 모두 왼쪽을 봅니다.\n"
         "   f = 파일, w·h = 크기(px), ax·ay = 발 기준점(px), k = 그림 1px 의 도트 수. */\n"
         f"window.CD_MON_FILES = {json.dumps({'k': round(1 / DOTS, 6), 'mon': mon, 'boss': boss, 'basic': basic}, ensure_ascii=False, separators=(',', ':'))};\n"
     )

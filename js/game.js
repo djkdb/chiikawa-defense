@@ -1291,7 +1291,7 @@
       '<li>괴물은 웨이브마다 <b>특성</b>(고속·장갑·재생·분열·부활)이 바뀌어요. 보스는 <b>기술</b>을 써요.</li>' +
       '<li><b>전설 셋</b>을 모으면 <b>신화</b> 레시피! 길 위 괴물이 한도에 닿으면 패배, <b>' + T.waves + '웨이브</b> 보스를 잡으면 클리어.</li>' +
       '</ol></div>' +
-      '<p class="sub notice">캐릭터 · 특성 괴물 · 보스 그림은 사람이 준 <b>팬 도트 시트</b>를 잘라 쓴 것이에요(공식 그림 아님). 일반 괴물 · 길 · 소리와 효과 대부분은 직접 만들었고, 일부 픽셀 효과는 오픈소스 <b>pixelfx</b>(MIT · Patch · Hugo Duprez)를 썼어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
+      '<p class="sub notice">캐릭터 · 괴물 · 보스 · 판 · 배경 그림은 <b>ChatGPT(AI)로 만든 팬 그림</b>을 잘라 쓴 것이에요(공식 그림 아님). 소리와 효과 대부분은 직접 만들었고, 일부 픽셀 효과는 오픈소스 <b>pixelfx</b>(MIT · Patch · Hugo Duprez)를 썼어요. 치이카와 © nagano · 공식과 관련 없는 비영리 팬 게임.</p>'
     );
     parade($('parade'), T.chars.map((c) => c.id));
     sheet.querySelectorAll('.diff').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.unlock(); S.play('pick'); pickDiff(+b.dataset.i); } }));

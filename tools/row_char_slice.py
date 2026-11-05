@@ -3,7 +3,7 @@
   python3 tools/row_char_slice.py                 # assets/chars/<id>/ 에 PNG + entry.json
   python3 tools/row_char_slice.py --board /tmp/k.png
 
-재료 (직접 그리지 않음 — 사람이 만든 초록 바탕 시트)
+재료 (직접 그리지 않음 — 사람이 ChatGPT 로 만든 초록 바탕 시트)
   tools/sheets/kani.webp — 카니 8칸: 0 책 읽기(책 더미) · 1 걷기 · 2 「!!!」 들어 올림 · 3 책 휘두름(궤적) · 4 책 내리침(번쩍) ·
       5 거두기 · 6 웃으며 읽기 · 7 책 읽기. 시트 카니는 왼쪽을 향해 휘두르는데 다른 친구 시트는 오른쪽을 보므로 좌우를 뒤집어 저장.
 

@@ -3,7 +3,7 @@
   python3 tools/chars_manifest.py          # chars.js 다시 쓰기
   python3 tools/chars_manifest.py --board /tmp/frames.png  # 고른 프레임 판도
 
-여덟 명 모두 사람이 새로 만든 초록 바탕 시트에서 _chiikawa_tools/slice_green.py 가 잘라 넣은 56칸 도트입니다
+여덟 명 모두 사람이 ChatGPT 로 만든 초록 바탕 시트에서 _chiikawa_tools/slice_green.py 가 잘라 넣은 56칸 도트입니다
 (assets/chars/<이름>/ 의 PNG · frames.json). 여기서는 frames.json 에서 디펜스가 쓸 것을 골라 옮겨 적기만 합니다(PNG 를 고치지 않음).
   k = 그림 1px 이 판의 몇 도트인지(몸 0.5 · 초상 64/폭) — 게임은 w·h·ax·ay 에 k 를 곱해 같은 키로 그림.
   친구마다 「공격 이펙트」 줄(fx_0..7, 캐릭터 색)이 있어 투사체(shot) · 맞은 자리(hit) · 스킬 터짐(fx)을 거기서 고르고,
@@ -67,7 +67,7 @@ def main():
         out[nm] = json.loads((CH / nm / "entry.json").read_text())
     js = (
         "/* 캐릭터 프레임 목록 — tools/chars_manifest.py 가 씁니다(손으로 고치지 말고 그 파일의 G_* 를 고친 뒤 다시 실행).\n"
-        "   그림: 사람이 만든 초록 바탕 팬 도트 시트를 자른 PNG(공식 그림 아님) — _chiikawa_tools/slice_green.py.\n"
+        "   그림: 사람이 ChatGPT 로 만든 초록 바탕 팬 도트 시트를 자른 PNG(공식 그림 아님) — _chiikawa_tools/slice_green.py.\n"
         "   f = 파일, w·h = 크기, ax·ay = 발 기준점(몸 프레임) 또는 가운데(효과 프레임), k = 그림 1px 의 도트 수.\n"
         "   hit = 맞은 자리 효과 · emo = 감정 8 · shot 의 aim = 날아가는 방향으로 돌림 · sz = 긴 변 도트. */\n"
         "window.CD_CHAR_FILES = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n"

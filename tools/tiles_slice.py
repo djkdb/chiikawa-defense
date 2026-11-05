@@ -1,4 +1,4 @@
-"""판 타일 · 소품 · 배경 맵 · 표지를 사람이 만든 그림에서 잘라 assets/tiles/ · assets/bg/ 에 넣습니다.
+"""판 타일 · 소품 · 배경 맵 · 표지를 사람이 ChatGPT 로 만든 그림에서 잘라 assets/tiles/ · assets/bg/ 에 넣습니다.
 
   python3 tools/tiles_slice.py                       # 자르고 tiles.js 쓰기
   python3 tools/tiles_slice.py --board /tmp/tiles.png  # + 확대 확인 판
@@ -81,7 +81,7 @@ def main():
             im.save(TILES / f"{nm}.png", optimize=True)
             man[nm] = {"f": f"{nm}.png", "w": im.width, "h": im.height}
             dbg.append((nm, im))
-    js = ("/* 판 타일 · 소품 목록 — tools/tiles_slice.py 가 씁니다(손으로 고치지 말 것). 사람이 만든 시트(tools/sheets/tiles.webp)를 자른 PNG.\n"
+    js = ("/* 판 타일 · 소품 목록 — tools/tiles_slice.py 가 씁니다(손으로 고치지 말 것). 사람이 ChatGPT 로 만든 시트(tools/sheets/tiles.webp)를 자른 PNG.\n"
           "   w·h = px, k = 그림 1px 의 도트 수. grass*·dirt* 는 칸 타일(가장자리 술 포함 칸의 1.12배 정사각). */\n"
           f"window.CD_TILE_FILES = {json.dumps({'k': round(1 / DOTS, 6), 'pad': 1.12, 'tiles': man}, ensure_ascii=False, separators=(',', ':'))};\n")
     (TILES / "tiles.js").write_text(js)
