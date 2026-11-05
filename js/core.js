@@ -183,7 +183,8 @@
     }
     const g = this.slots[b].u.g + 1, from = this.slots[a].u.ch;
     this.slots[a].u = null;
-    const ch = this.pick1(T.chars).id;
+    // 전설이 되는 합성은 친구가 그대로 — 신화 레시피 재료(정해진 전설 셋)를 노려서 모을 길 (그 아래 합성은 무작위 그대로)
+    const ch = g >= T.mergeTop ? from : this.pick1(T.chars).id;
     this.slots[b].u = this.newUnit(ch, g);
     this.emit('merge', { from: a, slot: b, ch, g, was: from });
     return { ok: true, slot: b };
