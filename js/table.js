@@ -46,8 +46,12 @@
       { key: 'easy',   name: '쉬움',   hp: 0.85, cap: 50, chips: [0, 0], color: '#7ccf6a', desc: '처음이라면 여기서' },
       { key: 'normal', name: '보통',   hp: 1.5, cap: 40, chips: [0, 0], color: '#5aa7ee', desc: '합성 · 강화를 알면' },
       { key: 'hard',   name: '어려움', hp: 1.7, cap: 40, chips: [1, 1], color: '#ae78ee', desc: '변수 칩 1개 · 확률 업 · 신화가 필요' },
+      // 2026-11-06 「난이도 세분화」: 어려움(잘하는 봇 65%)과 지옥(8%) 사이가 너무 벌어져 극한(약 35%)을 끼움
+      { key: 'extreme', name: '극한',  hp: 1.9, cap: 35, chips: [1, 2], skill: 0.8, speed: 1.05, color: '#ef8a3a', desc: '변수 칩 1~2개 · 보스 기술 조금 자주' },
       // 지옥(2026-11-06 「너무 쉬움」): 칩 늘 2개 · 보스 기술 1.5배 자주(skill 0.67) · 괴물 10% 빠름(speed)
-      { key: 'hell',   name: '지옥',   hp: 2.0, cap: 30, chips: [2, 2], skill: 0.67, speed: 1.1, color: '#e8566b', desc: '변수 칩 2개 · 보스 기술 자주 · 한도 30' },
+      { key: 'hell',   name: '지옥',   hp: 2.0, cap: 30, chips: [2, 2], skill: 0.67, speed: 1.1, color: '#e8566b', desc: '변수 칩 2개 · 보스 기술 자주 · 괴물 빠름' },
+      // 악몽 = 「제일 어려운 건 진짜 어렵게」: 잘하는 봇도 100판에 3판(보통 9웨이브에서 끝남). 보스 기술 2배 자주 · 보스 체력 +20% · 동전 −10%
+      { key: 'nightmare', name: '악몽', hp: 2.5, cap: 30, chips: [2, 2], skill: 0.5, speed: 1.15, bossHp: 1.2, coin: 0.9, color: '#4a2a63', desc: '보스 기술 2배 · 보스 체력 +20% · 동전 −10% — 진짜 어려움' },
     ],
     // 변수 칩 — 어려움·지옥에서 판마다 무작위로. 시작 화면과 멈춤 화면에 보임
     chips: {

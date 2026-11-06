@@ -73,8 +73,12 @@
   function saveRec(r) { try { localStorage.setItem(STORE, JSON.stringify(r)); } catch (e) { /* 사생활 보호 모드 등 — 기록만 못 남김 */ } }
   // 난이도별 기록 { plays, best, clears, bestTime, endless } · 신화 레시피 발견 목록 found[]
   function drec(r, i) { r.d = r.d || {}; return (r.d[T.diffs[i].key] = r.d[T.diffs[i].key] || {}); }
-  // 쉬움·보통은 처음부터, 그 위는 바로 아래 난이도를 한 번이라도 깨면
-  function unlocked(r, i) { return i <= 1 || !!(r.d && r.d[T.diffs[i - 1].key] && r.d[T.diffs[i - 1].key].clears); }
+  // 쉬움·보통은 처음부터, 그 위는 바로 아래 난이도를 한 번이라도 깨면.
+  // 이미 해 본 난이도도 열린 채로 — 극한을 끼워 넣기(2026-11-06) 전에 지옥을 하던 사람이 다시 잠기지 않게
+  function unlocked(r, i) {
+    const d = r.d || {}, me = d[T.diffs[i].key], below = d[T.diffs[i - 1] ? T.diffs[i - 1].key : ''];
+    return i <= 1 || !!(below && below.clears) || !!(me && me.plays);
+  }
   function found(r) { return Array.isArray(r.found) ? r.found : []; }
   // 기록 옮기기 코드에 담을 것 — 기기별 설정(set)은 빼고 기록만
   function packRec(r) { return { plays: r.plays || 0, d: r.d || {}, found: found(r), tut: r.tut ? 1 : 0 }; }
@@ -911,7 +915,7 @@
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(topHi, 0, -PAD, BW, PAD);
       ctx.drawImage(floorHi, 0, 0, BW, ROWS * TILE);
-      // 밤 숲 난이도(어려움 · 지옥)는 판도 살짝 어둡고 푸르게 — 길 · 칸은 읽히는 만큼만
+      // 밤 숲 난이도(어려움 이상)는 판도 살짝 어둡고 푸르게 — 길 · 칸은 읽히는 만큼만
       if (g && g.diff >= 2) { ctx.fillStyle = 'rgba(30,40,95,.2)'; ctx.fillRect(0, -PAD, BW, BH); }
       ctx.imageSmoothingEnabled = false;
     } else {
@@ -1255,8 +1259,9 @@
     T.diffs.forEach((D, i) => {
       const o = unlocked(r, i), d = (r.d && r.d[D.key]) || {};
       h += '<button class="diff' + (i === diffSel ? ' on' : '') + '" data-i="' + i + '" style="--c:' + D.color + '"' + (o ? '' : ' disabled') + ' aria-pressed="' + (i === diffSel) + '">' +
-        '<b>' + (o ? '' : LOCK) + D.name + '</b><span>' + (o ? D.desc : T.diffs[i - 1].name + ' 클리어하면 열려요') + '</span>' +
-        '<em>' + (d.plays ? '최고 ' + (d.clears ? '클리어' + (d.endless ? ' · 무한 ' + d.endless : '') : d.best + '웨이브') : '기록 없음') + '</em></button>';
+        // 6단(2026-11-06)이 되며 한 줄 3칸 — 버튼엔 이름 · 기록만(설명은 아래 줄에 고른 것 하나), 잠긴 칸만 여는 법
+        '<b>' + (o ? '' : LOCK) + D.name + '</b>' +
+        '<em>' + (!o ? T.diffs[i - 1].name + ' 깨면 열림' : d.plays ? (d.clears ? '클리어' + (d.endless ? ' · 무한 ' + d.endless : '') : '최고 ' + d.best + '웨이브') : '기록 없음') + '</em></button>';
     });
     h += '</div><div class="vchips" id="vchips"></div>';
     // 지형 — 누르면 뒤의 판도 그 지형으로 바뀜
@@ -1285,16 +1290,16 @@
     const r = rec(); r.map = i; saveRec(r);
     g = new Core.Game({ seed: 1, map: i });
     bakeFloor();
-    const v = $('vchips'); if (v && v.firstChild) v.firstChild.textContent = T.diffs[diffSel].name + ' · ' + T.maps[i].name + ' — ' + T.maps[i].desc;
+    pickDiff(diffSel);   // 설명 줄에 지형도 같이
   }
   function pickDiff(i) {
     diffSel = i;
     setBg(i);
     sheet.querySelectorAll('.diff').forEach((b) => { const on = +b.dataset.i === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const D = T.diffs[i], chips = Core.rollChips(i, nextSeed);
-    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + (mapSel ? ' · ' + T.maps[mapSel].name : '') + (modeSel === 'rush' ? ' · 보스 러시 ' + T.modes.rush.waves + '웨이브' : '') + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
+    $('vchips').innerHTML = '<div class="sub"><b style="color:' + D.color + '">' + D.name + '</b> — ' + D.desc + '</div><div class="sub">괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + (modeSel === 'rush' ? ' · 보스 러시 ' + T.modes.rush.waves + '웨이브' : '') + '</div>' + (mapSel ? '<div class="sub">지형 「' + T.maps[mapSel].name + '」 — ' + T.maps[mapSel].desc + '</div>' : '') + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
   }
-  // 판 뒤 배경: 쉬움 · 보통 = 낮 들판, 어려움 · 지옥 = 밤 숲 (index.html 의 body.bg-day / bg-night)
+  // 판 뒤 배경: 쉬움 · 보통 = 낮 들판, 어려움 이상 = 밤 숲 (index.html 의 body.bg-day / bg-night)
   function setBg(d) { document.body.classList.toggle('bg-night', d >= 2); document.body.classList.toggle('bg-day', d < 2); }
   function titleScreen() {
     phase = 'title';

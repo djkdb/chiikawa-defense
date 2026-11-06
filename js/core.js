@@ -69,8 +69,8 @@
   // 난이도 · 변수 칩 → 판 전체에 곱하는 값 하나로
   function mods(diff, chips) {
     const D = T.diffs[diff] || T.diffs[1];
-    // skill = 보스 기술 간격 배수(작을수록 자주) · speed = 난이도 자체 이동 속도 (지옥)
-    const m = { hp: D.hp, speed: D.speed || 1, regen: 0, start: 1, coin: 1, count: 1, bossHp: 1, cap: D.cap, skill: D.skill || 1 };
+    // skill = 보스 기술 간격 배수(작을수록 자주) · speed · regen · start · coin · count · bossHp = 난이도 자체 값 (칩과 같은 뜻, 칩이 그 위에 곱해짐)
+    const m = { hp: D.hp, speed: D.speed || 1, regen: D.regen || 0, start: D.start || 1, coin: D.coin || 1, count: D.count || 1, bossHp: D.bossHp || 1, cap: D.cap, skill: D.skill || 1 };
     for (const k of chips) {
       const c = T.chips[k];
       if (!c) continue;

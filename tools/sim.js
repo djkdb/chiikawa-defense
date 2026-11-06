@@ -1,4 +1,4 @@
-/* 균형 확인 — 화면 없이 규칙만 돌려 봅니다. 난이도 넷 × 봇 다섯 × 씨앗 N 개.
+/* 균형 확인 — 화면 없이 규칙만 돌려 봅니다. 난이도 여섯 × 봇 다섯 × 씨앗 N 개.
      node tools/sim.js            # 씨앗 24개
      node tools/sim.js 40 --md    # 씨앗 40개 · README 에 붙일 표(마크다운)
      node tools/sim.js 24 --diff 3 --bot good   # 하나만

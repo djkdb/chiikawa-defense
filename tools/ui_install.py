@@ -30,7 +30,9 @@ MAP = [
     (".diff[data-i='0']", "frame_yellow", 0.34),
     (".diff[data-i='1']", "frame_sky", 0.34),
     (".diff[data-i='2']", "frame_purple", 0.34),
-    (".diff[data-i='3']", "frame_rainbow", 0.34),
+    (".diff[data-i='3']", "frame_rainbow", 0.34),   # 극한 · 지옥 · 악몽은 같은 무지개 틀 (글자 색으로 나눔)
+    (".diff[data-i='4']", "frame_rainbow", 0.34),
+    (".diff[data-i='5']", "frame_rainbow", 0.34),
     (".rcard", "frame_yellow", 0.36),
     (".rcard.gam", "frame_rainbow", 0.36),
     (".recipe", "frame_gray", 0.3),

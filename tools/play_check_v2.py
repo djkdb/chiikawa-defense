@@ -298,11 +298,11 @@ def run_device(pw, base, name, viewport, mobile, speed, seed):
     pg.evaluate("document.getElementById('pauseBtn').click()")
     D.press("#quitBtn")
     # 4) 지옥: 기록으로 열고 다시 불러 시작 화면에서 고르기 → 손 놓고 패배
-    pg.evaluate(f"(()=>{{const r=JSON.parse(localStorage.getItem('{STORE}')||'{{}}');r.d=r.d||{{}};for(const k of ['easy','normal','hard'])r.d[k]=Object.assign({{plays:1,best:20}},r.d[k]||{{}},{{clears:1}});localStorage.setItem('{STORE}',JSON.stringify(r));}})()")
+    pg.evaluate(f"(()=>{{const r=JSON.parse(localStorage.getItem('{STORE}')||'{{}}');r.d=r.d||{{}};for(const k of ['easy','normal','hard','extreme'])r.d[k]=Object.assign({{plays:1,best:20}},r.d[k]||{{}},{{clears:1}});localStorage.setItem('{STORE}',JSON.stringify(r));}})()")
     pg.reload()
     pg.wait_for_selector("#startBtn")
     pg.wait_for_timeout(700)
-    D.press(".diff[data-i='3']")
+    D.press(".diff[data-i='4']")
     D.shot("title_hell")
     out["hell_chips"] = pg.evaluate("document.getElementById('vchips').innerText")
     D.press("#startBtn")
@@ -510,7 +510,7 @@ def main():
         m = d["myth"]
         if 0 not in m["made"] or not m["slot5"] or m["slot5"]["g"] != 4 or m["skill"] < 1:
             bad.append(f"{n}: 신화 레시피 실패 {m}")
-        if d["hell"]["over"] != "lose" or d["hell"]["diff"] != 3:
+        if d["hell"]["over"] != "lose" or d["hell"]["diff"] != 4:
             bad.append(f"{n}: 지옥 패배 판 이상 {d['hell']}")
     errs = [f"{d['device']}: {e}" for d in report for e in d["errors"]] + [f"{m['name']}: {e}" for m in lays for e in m["errors"]]
     print("판:", path, "· 기기 배치 판:", lpath)

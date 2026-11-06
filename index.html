@@ -173,7 +173,7 @@ table.grades th{background:var(--sky-bg-2)}
 .wave .next{color:var(--ink);overflow:hidden;text-overflow:ellipsis;max-width:180px}
 .info .odds{font-size:11px;color:var(--ui-mute)}
 /* 난이도 */
-.diffs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 4px}
+.diffs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 4px}
 /* 지형 고르기 — 시작 화면 난이도 아래 한 줄 */
 .maps{display:flex;gap:6px;align-items:center;justify-content:center;margin:4px 0 2px;flex-wrap:wrap}
 .maps .sub{font-size:12px}
@@ -182,7 +182,7 @@ table.grades th{background:var(--sky-bg-2)}
 .diff{display:flex;flex-direction:column;gap:1px;padding:9px 12px;text-align:left;box-shadow:inset 0 -4px 0 var(--c),var(--ui-shadow)}
 .diff b{font:15px var(--f-b);color:var(--c)}
 .diff span{font-size:11px;color:var(--ui-mute);line-height:1.3}
-.diff em{font-style:normal;font-size:11px}
+.diff em{font-style:normal;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .diff.on{background:var(--ui-on);outline:3px solid var(--c);outline-offset:1px}
 .diff[disabled]{opacity:.5;cursor:default}
 .vchips{display:flex;flex-direction:column;gap:4px;margin:4px 0;text-align:left}
@@ -254,14 +254,16 @@ body[data-lay="phone"] .cover{height:110px}
 body[data-lay="phone"] #cutin b{font-size:19px}body[data-lay="phone"] #cutin img{height:54px}
 @media (prefers-reduced-motion:reduce){#cutin.go,.bump{animation:none}}
 /* ui-kit:defense:start — tools/ui_install.py 가 씀, 손으로 고치지 않음 */
-.card,.diff,.diff[data-i='0'],.diff[data-i='1'],.diff[data-i='2'],.diff[data-i='3'],.rcard,.rcard.gam,.recipe,.recipe.ready,.rules{position:relative;isolation:isolate;background:none!important;border-color:transparent!important;box-shadow:none!important}
-.card::before,.diff::before,.diff[data-i='0']::before,.diff[data-i='1']::before,.diff[data-i='2']::before,.diff[data-i='3']::before,.rcard::before,.rcard.gam::before,.recipe::before,.recipe.ready::before,.rules::before{content:"";position:absolute;inset:calc(var(--ui-bw)*-1);z-index:-1;pointer-events:none;border-style:solid;border-color:transparent;border-image-source:var(--src);border-image-slice:var(--sl) fill;border-image-repeat:stretch;border-width:calc(var(--t)*var(--uk)) calc(var(--r)*var(--uk)) calc(var(--b)*var(--uk)) calc(var(--l)*var(--uk))}
+.card,.diff,.diff[data-i='0'],.diff[data-i='1'],.diff[data-i='2'],.diff[data-i='3'],.diff[data-i='4'],.diff[data-i='5'],.rcard,.rcard.gam,.recipe,.recipe.ready,.rules{position:relative;isolation:isolate;background:none!important;border-color:transparent!important;box-shadow:none!important}
+.card::before,.diff::before,.diff[data-i='0']::before,.diff[data-i='1']::before,.diff[data-i='2']::before,.diff[data-i='3']::before,.diff[data-i='4']::before,.diff[data-i='5']::before,.rcard::before,.rcard.gam::before,.recipe::before,.recipe.ready::before,.rules::before{content:"";position:absolute;inset:calc(var(--ui-bw)*-1);z-index:-1;pointer-events:none;border-style:solid;border-color:transparent;border-image-source:var(--src);border-image-slice:var(--sl) fill;border-image-repeat:stretch;border-width:calc(var(--t)*var(--uk)) calc(var(--r)*var(--uk)) calc(var(--b)*var(--uk)) calc(var(--l)*var(--uk))}
 .card{--src:url(assets/ui/panel_wide.png);--sl:46 46 29 49;--t:46px;--r:46px;--b:29px;--l:49px;--uk:0.32}
 .diff{--src:url(assets/ui/frame_gray.png);--sl:47 37 40 43;--t:47px;--r:37px;--b:40px;--l:43px;--uk:0.34}
 .diff[data-i='0']{--src:url(assets/ui/frame_yellow.png);--sl:48 40 43 44;--t:48px;--r:40px;--b:43px;--l:44px;--uk:0.34}
 .diff[data-i='1']{--src:url(assets/ui/frame_sky.png);--sl:46 36 38 42;--t:46px;--r:36px;--b:38px;--l:42px;--uk:0.34}
 .diff[data-i='2']{--src:url(assets/ui/frame_purple.png);--sl:47 36 39 42;--t:47px;--r:36px;--b:39px;--l:42px;--uk:0.34}
 .diff[data-i='3']{--src:url(assets/ui/frame_rainbow.png);--sl:48 40 42 44;--t:48px;--r:40px;--b:42px;--l:44px;--uk:0.34}
+.diff[data-i='4']{--src:url(assets/ui/frame_rainbow.png);--sl:48 40 42 44;--t:48px;--r:40px;--b:42px;--l:44px;--uk:0.34}
+.diff[data-i='5']{--src:url(assets/ui/frame_rainbow.png);--sl:48 40 42 44;--t:48px;--r:40px;--b:42px;--l:44px;--uk:0.34}
 .rcard{--src:url(assets/ui/frame_yellow.png);--sl:48 40 43 44;--t:48px;--r:40px;--b:43px;--l:44px;--uk:0.36}
 .rcard.gam{--src:url(assets/ui/frame_rainbow.png);--sl:48 40 42 44;--t:48px;--r:40px;--b:42px;--l:44px;--uk:0.36}
 .recipe{--src:url(assets/ui/frame_gray.png);--sl:47 37 40 43;--t:47px;--r:37px;--b:40px;--l:43px;--uk:0.3}
@@ -310,7 +312,9 @@ body[data-lay="phone"] .tool{min-height:46px;padding:2px 6px}
 body[data-lay="phone"] .tool>b{font-size:11px}
 body[data-lay="phone"] .side-links{display:none}
 body[data-lay="phone"] .fan{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-body[data-lay="phone"] .diffs{grid-template-columns:1fr 1fr}
+body[data-lay="phone"] .diffs{grid-template-columns:repeat(3,1fr);gap:5px}
+body[data-lay="phone"] .diff{padding:7px 8px}
+body[data-lay="phone"] .diff em{font-size:10px}
 body[data-lay="phone"] .wave .next{max-width:150px}
 body[data-lay="phone"] .cards3{gap:5px}
 body[data-lay="phone"] .rcard{padding:8px 4px;min-height:120px}
