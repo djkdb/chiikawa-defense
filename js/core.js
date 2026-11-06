@@ -46,7 +46,8 @@
   // 난이도 · 변수 칩 → 판 전체에 곱하는 값 하나로
   function mods(diff, chips) {
     const D = T.diffs[diff] || T.diffs[1];
-    const m = { hp: D.hp, speed: 1, regen: 0, start: 1, coin: 1, count: 1, bossHp: 1, cap: D.cap };
+    // skill = 보스 기술 간격 배수(작을수록 자주) · speed = 난이도 자체 이동 속도 (지옥)
+    const m = { hp: D.hp, speed: D.speed || 1, regen: 0, start: 1, coin: 1, count: 1, bossHp: 1, cap: D.cap, skill: D.skill || 1 };
     for (const k of chips) {
       const c = T.chips[k];
       if (!c) continue;
@@ -409,7 +410,7 @@
     if (k === 'boss') {
       const B = this.bossType(this.wave);
       e.bt = B.key;
-      e.bs = { phase: 'walk', t: B.first, pt: 0, targets: [] };
+      e.bs = { phase: 'walk', t: B.first * this.m.skill, pt: 0, targets: [] };
     }
     const p = this.path.at(e.d);
     e.x = p.x; e.y = p.y; e.dir = p.dir;
@@ -456,7 +457,7 @@
       this.emit('bcast', out);
       return;
     }
-    S.phase = 'walk'; S.t = B.every; S.targets = [];
+    S.phase = 'walk'; S.t = B.every * this.m.skill; S.targets = [];
   };
 
   // ── 공격 ─────────────────────────────────────────────────
