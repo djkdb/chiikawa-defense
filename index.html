@@ -364,7 +364,7 @@ kbd{display:none;font:10px var(--f);border:1.5px solid var(--ink);border-bottom-
 .set label{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:4px 12px;border:3px solid var(--ink);border-radius:12px;background:#fff;font-size:14px}
 .set input[type=checkbox]{width:24px;height:24px;accent-color:#2f7ad8}
 .set select{font:inherit;min-height:36px;border:2px solid var(--ink);border-radius:8px;background:#fff}
-#toast{pointer-events:auto;cursor:pointer}
+/* 토스트는 판 아래쪽 위에 뜨므로 터치를 받지 않음 — 예전엔 안 보일 때도 받아서 「작은 숲」 맨 아랫줄 친구가 눌리지 않았음(2026-11-06 플레이어 제보) */
 /* 움직임 줄이기 (설정 · OS 설정) */
 body.calm .parade canvas,body.calm #summonBtn.pulse,body.calm .load.hot,body.calm .tool.pulse,body.calm .coach-on{animation:none!important}
 body.calm #cutin.go{animation:cutinCalm 2s linear}

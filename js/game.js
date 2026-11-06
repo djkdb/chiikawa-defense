@@ -1151,7 +1151,6 @@
     el.appendChild(d);
     el.className = 'go ' + (kind || 'wave');
   }
-  $('toast').addEventListener('click', () => $('toast').classList.remove('on'));
   function bump(el) { if (!el) return; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   const bannerQ = [];
   function banner(big, small, cls) {

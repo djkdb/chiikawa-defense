@@ -378,6 +378,20 @@ def layout_pass(pw, base, name, vp, touch, want):
     pg.wait_for_timeout(250)
     D.shot("pause")
     D.press("#resumeBtn")
+    # 지형마다 모든 친구 칸 한가운데를 누르면 판(canvas)이 받는지 — 토스트 상자가 「작은 숲」 맨 아랫줄을 덮어
+    # 친구가 안 눌리던 일(2026-11-06 플레이어 제보). 토스트를 띄운 채로 잼
+    blocked = []
+    for mp in range(3):
+        pg.evaluate(f"(()=>{{const r=JSON.parse(localStorage.getItem('{STORE}')||'{{}}');r.map={mp};r.tut=1;localStorage.setItem('{STORE}',JSON.stringify(r));}})()")
+        pg.reload()
+        pg.wait_for_selector("#startBtn")
+        pg.wait_for_timeout(400)
+        D.press("#startBtn")
+        pg.wait_for_timeout(300)
+        blocked += pg.evaluate("""(mp) => { const g = CD.test.game();
+          return g.slots.map((s, i) => { const p = CD.test.slotPoint(i), e = document.elementFromPoint(p.x, p.y);
+            return e && e.id === 'board' ? null : '지형' + mp + ' 칸(' + s.x + ',' + s.y + ')←' + (e ? e.tagName + '#' + e.id : '없음'); }).filter(Boolean); }""", mp)
+    m["blocked"] = blocked
     b.close()
     m.update({"name": name, "want": want, "errors": D.errors, "shots": {k: str(v) for k, v in D.shots.items()}})
     return m
@@ -489,6 +503,8 @@ def main():
             bad.append(f"{n}: 36px 안 되는 버튼 {m['small']}")
         if m["off"]:
             bad.append(f"{n}: 화면 밖 버튼 {m['off']}")
+        if m.get("blocked"):
+            bad.append(f"{n}: 판 칸을 다른 것이 덮음 {m['blocked'][:4]}")
     for d in report:
         n = d["device"]
         e, sn = d["easy"], d["seen"]
