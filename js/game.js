@@ -1286,7 +1286,7 @@
   }
   function pickMap(i) {
     mapSel = i;
-    sheet.querySelectorAll('.mapb').forEach((b) => { const on = +b.dataset.m === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    sheet.querySelectorAll('.mapb[data-m]').forEach((b) => { const on = +b.dataset.m === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const r = rec(); r.map = i; saveRec(r);
     g = new Core.Game({ seed: 1, map: i });
     bakeFloor();
