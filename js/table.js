@@ -5,6 +5,13 @@
   const T = {
     // 판: 가장자리 한 바퀴가 괴물 길, 안쪽 (cols-2)×(rows-2) 칸이 친구 자리
     board: { cols: 6, rows: 8 },
+    // 게임 모드(2026-11-06): waves = 웨이브 수 · bossAll = 매 웨이브 보스 · waveK = 체력 · 괴물 수를 몇 웨이브 뒤처럼 · count = 일반 괴물 수 배수 · start = 시작 동전 배수
+    //   daily(오늘의 도전)는 규칙은 기본 그대로, 날짜로 지형 · 변수 칩 · 씨앗을 정해 그날은 모두 같은 판 (game.js)
+    modes: {
+      normal: { name: '기본', desc: '20웨이브 · 5웨이브마다 보스' },
+      rush:   { name: '보스 러시', desc: '10웨이브 · 매 웨이브 보스', waves: 10, bossAll: true, waveK: 2, count: 0.5, start: 2, bossHp: 0.8, waveTime: 25 },   // bossHp · waveTime 은 sim 으로 (보스가 쌓이면 한도에 바로 닿아서)
+      daily:  { name: '오늘의 도전', desc: '날짜마다 지형 · 칩이 정해진 같은 판' },
+    },
     // 지형(2026-11-06): path = 길이 꺾이는 칸 [열, 행] 을 차례로 (닫힌 고리, 첫 칸 = 괴물 굴) · block = 친구가 못 서는 칸(덤불 · 바위)
     //   hp = 자리 수 · 길 길이가 달라 생기는 쉬움/어려움을 맞추는 체력 배수 (tools/sim.js --map 으로 맞춤)
     maps: [

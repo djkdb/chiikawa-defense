@@ -23,7 +23,18 @@
 
   let g = null;
   let phase = 'title';          // title | play | pause | pick | end
-  let diffSel = 1, nextSeed = 0, firstTitle = true, mapSel = 0; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
+  let diffSel = 1, nextSeed = 0, firstTitle = true, mapSel = 0, modeSel = 'normal';
+  // 오늘의 도전: 날짜(이 기기 시각) 하나로 씨앗 · 지형 · 변수 칩이 정해져 그날은 모두 같은 판 — 난이도는 보통 + 칩 1개
+  function dailySetup() {
+    const d = new Date(), key = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    return { key, label: (d.getMonth() + 1) + '월 ' + d.getDate() + '일', seed: key, diff: 1, map: key % T.maps.length, chips: Core.rollChips(2, key) };
+  }
+  // 모드별 기록 칸 (기본 = 난이도별 drec · 보스 러시 = 난이도별 r.rush · 오늘의 도전 = 날짜 하나)
+  function modeRec(r) {
+    if (modeSel === 'rush') { r.rush = r.rush || {}; return (r.rush[T.diffs[g.diff].key] = r.rush[T.diffs[g.diff].key] || {}); }
+    if (modeSel === 'daily') { const k = dailySetup().key; if (!r.daily || r.daily.key !== k) r.daily = { key: k }; return r.daily; }
+    return drec(r, g.diff);
+  } // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
   const TR = T.traits, BOSS = {};
   T.bosses.forEach((b) => (BOSS[b.key] = b));
   let sel = -1, drag = null, hover = -1;
@@ -881,7 +892,7 @@
     x.font = '6px Galmuri11, sans-serif'; x.fillStyle = '#ffffff'; x.textBaseline = 'top';
     x.fillText(B.name + ' ' + fmt(Math.max(0, b.hp)), X, Y - 1);
     x.textAlign = 'right';
-    if (g.wave >= T.waves && !g.endless) { x.fillStyle = '#ffd0dc'; x.fillText(Math.ceil(Math.max(0, g.tWave)) + '초', X + w, Y - 1); }
+    if (g.wave >= g.waves && !g.endless) { x.fillStyle = '#ffd0dc'; x.fillText(Math.ceil(Math.max(0, g.tWave)) + '초', X + w, Y - 1); }
     else if (b.bs) {
       const ph = b.bs.phase;
       x.fillStyle = ph === 'walk' ? '#e9dcff' : '#ffd0e6';
@@ -1008,8 +1019,8 @@
     if (!g) return;
     if (bannerQ.length && view.t - bannerAt >= 1.5) banner.apply(null, bannerQ.shift());
     coachTick();
-    setText('waveTxt', g.wave ? (g.endless ? '무한 ' + g.wave : '웨이브 ' + g.wave + '/' + T.waves) : '준비');
-    const last = g.wave >= T.waves && !g.endless;
+    setText('waveTxt', g.wave ? (g.endless ? '무한 ' + g.wave : '웨이브 ' + g.wave + '/' + g.waves) : '준비');
+    const last = g.wave >= g.waves && !g.endless;
     setText('waveT', g.over ? '' : last ? '남은 ' + Math.ceil(Math.max(0, g.tWave)) + '초' : '다음 ' + Math.ceil(Math.max(0, g.tWave)) + '초');
     // 다음 웨이브 미리 보기: 특성 · 보스
     const nw = g.wave + 1;
@@ -1252,6 +1263,22 @@
     h += '<div class="maps" id="maps"><span class="sub">지형</span>' + T.maps.map((M, i) => '<button class="mapb' + (i === mapSel ? ' on' : '') + '" data-m="' + i + '" aria-pressed="' + (i === mapSel) + '" title="' + M.desc + '">' + M.name + '</button>').join('') + '</div>';
     return h;
   }
+  function modeBox() {
+    return '<div class="maps" id="modes"><span class="sub">모드</span>' + Object.keys(T.modes).map((k) => '<button class="mapb modeb' + (k === modeSel ? ' on' : '') + '" data-mode="' + k + '" aria-pressed="' + (k === modeSel) + '">' + T.modes[k].name + '</button>').join('') + '</div>';
+  }
+  // 모드 고르기: 오늘의 도전이면 난이도 · 지형 칸 대신 「오늘의 판」 안내 (그날 정해진 지형 · 칩)
+  function pickMode(k) {
+    modeSel = k;
+    const r = rec(); r.mode = k; saveRec(r);
+    sheet.querySelectorAll('.modeb').forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const daily = k === 'daily';
+    $('diffs').hidden = daily; $('maps').hidden = daily;
+    if (daily) {
+      const D = dailySetup(), best = r.daily && r.daily.key === D.key ? r.daily.best : 0;
+      g = new Core.Game({ seed: 1, map: D.map }); bakeFloor();
+      $('vchips').innerHTML = '<div class="sub"><b>오늘의 도전 · ' + D.label + '</b> — 오늘은 모두 같은 판 · 보통 · 지형 「' + T.maps[D.map].name + '」' + (best ? ' · 오늘 최고 ' + best + '웨이브' : '') + '</div>' + chipHtml(D.chips);
+    } else { g = new Core.Game({ seed: 1, map: mapSel }); bakeFloor(); pickDiff(diffSel); }
+  }
   function pickMap(i) {
     mapSel = i;
     sheet.querySelectorAll('.mapb').forEach((b) => { const on = +b.dataset.m === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
@@ -1265,7 +1292,7 @@
     setBg(i);
     sheet.querySelectorAll('.diff').forEach((b) => { const on = +b.dataset.i === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const D = T.diffs[i], chips = Core.rollChips(i, nextSeed);
-    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + (mapSel ? ' · ' + T.maps[mapSel].name : '') + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
+    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + (mapSel ? ' · ' + T.maps[mapSel].name : '') + (modeSel === 'rush' ? ' · 보스 러시 ' + T.modes.rush.waves + '웨이브' : '') + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
   }
   // 판 뒤 배경: 쉬움 · 보통 = 낮 들판, 어려움 · 지옥 = 밤 숲 (index.html 의 body.bg-day / bg-night)
   function setBg(d) { document.body.classList.toggle('bg-night', d >= 2); document.body.classList.toggle('bg-day', d < 2); }
@@ -1284,6 +1311,7 @@
       // 만든 사람 — 누르면 인스타 프로필 (인스타 인앱에선 바로 프로필로)
       '<div class="sub maker">만든 사람 <a href="https://www.instagram.com/zun_it_/" target="_blank" rel="noopener">@zun_it_</a></div>' +
       // 난이도 · 시작을 위로 — 인스타 DM(세로 약 650px)에서 스크롤 없이 첫 화면에 「시작하기」 가 보이게. 규칙은 그 아래(첫 판 안내가 다시 알려 줌)
+      modeBox() +
       diffBox() +
       '<div class="row-btns"><button class="btn" id="startBtn">시작하기</button><button class="btn sky" id="codexBtn">도감 · 규칙</button></div>' +
       '<div class="rec">' + (r.plays ? '모든 난이도 ' + r.plays + '판 · 신화 레시피 ' + found(r).length + '/' + T.recipes.length + ' 발견' : '첫 판이에요!') + '</div>' +
@@ -1299,7 +1327,9 @@
     );
     parade($('parade'), T.chars.map((c) => c.id));
     sheet.querySelectorAll('.diff').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.unlock(); S.play('pick'); pickDiff(+b.dataset.i); } }));
-    sheet.querySelectorAll('.mapb').forEach((b) => b.addEventListener('click', () => { S.unlock(); S.play('pick'); pickMap(+b.dataset.m); }));
+    sheet.querySelectorAll('.mapb:not(.modeb)').forEach((b) => b.addEventListener('click', () => { S.unlock(); S.play('pick'); pickMap(+b.dataset.m); }));
+    sheet.querySelectorAll('.modeb').forEach((b) => b.addEventListener('click', () => { S.unlock(); S.play('pick'); pickMode(b.dataset.mode); }));
+    if (modeSel !== 'normal') pickMode(modeSel);
     pickDiff(diffSel);
     btn('startBtn', start);
     btn('codexBtn', () => codexScreen(false));
@@ -1368,7 +1398,7 @@
   }
   function pauseScreen() {
     phase = 'pause';
-    open('<h2>잠깐 쉬어요</h2><p class="sub">' + T.diffs[g.diff].name + ' · 웨이브 ' + g.wave + ' · 동전 ' + g.coins + ' · 클로버 ' + g.clovers + '</p>' + (g.chips.length ? '<div class="vchips">' + chipHtml(g.chips) + '</div>' : '') +
+    open('<h2>잠깐 쉬어요</h2><p class="sub">' + (g.mode === 'normal' ? '' : T.modes[g.mode].name + ' · ') + T.diffs[g.diff].name + ' · ' + T.maps[g.map].name + ' · 웨이브 ' + g.wave + '/' + g.waves + ' · 동전 ' + g.coins + ' · 클로버 ' + g.clovers + '</p>' + (g.chips.length ? '<div class="vchips">' + chipHtml(g.chips) + '</div>' : '') +
       '<div class="row-btns"><button class="btn" id="resumeBtn">계속하기</button><button class="btn sky" id="setBtn2">설정</button><button class="btn sky" id="codexBtn">도감</button><button class="btn pink" id="quitBtn">처음으로</button>' + iaHtml('buttonHtml', 'btn sky') + '</div>' +
       '<p class="sub keys">단축키: 스페이스 소환 · 1~4 강화 · Q 확률 · W 행운 · E 신화 · F 빠르기 · P/Esc 멈춤</p>');
     btn('resumeBtn', () => { close(); phase = 'play'; });
@@ -1381,8 +1411,9 @@
   let endInfo = null;
   function endScreen(e) {
     if (phase !== 'end' || endInfo) return;
-    const r = rec(), D = T.diffs[g.diff], d = drec(r, g.diff);
-    const wasLocked = g.diff + 1 < T.diffs.length && !unlocked(r, g.diff + 1);
+    const r = rec(), D = T.diffs[g.diff], d = modeRec(r);
+    // 난이도 열기는 기본 모드로 깼을 때만
+    const wasLocked = g.mode === 'normal' && g.diff + 1 < T.diffs.length && !unlocked(r, g.diff + 1);
     // 무한 모드에서 진 판은 클리어 기록에 이미 들어 있으므로 판 수를 다시 세지 않음
     if (!e.endless) { r.plays = (r.plays || 0) + 1; d.plays = (d.plays || 0) + 1; }
     d.best = Math.max(d.best || 0, e.wave);
@@ -1396,20 +1427,21 @@
     resultScreen();
   }
   function resultScreen() {
-    const { e, opened, isBest } = endInfo, D = T.diffs[g.diff], d = drec(rec(), g.diff);
+    const { e, opened, isBest } = endInfo, D = T.diffs[g.diff], d = modeRec(rec());
+    const MN = g.mode === 'normal' ? D.name : T.modes[g.mode].name + (g.mode === 'daily' ? ' ' + dailySetup().label : ' · ' + D.name);
     open(
-      (e.win ? '<h1>클리어!</h1><div class="sub">' + D.name + ' · 들판에 평화가 왔어요' + (opened ? ' · <b>「' + opened + '」 열림!</b>' : '') + '</div>'
-        : e.endless ? '<h1>무한 모드 끝</h1><div class="sub">' + D.name + ' · ' + e.wave + '웨이브까지 버텼어요 · ' + e.why + '</div>'
-        : '<h1>패배…</h1><div class="sub">' + D.name + ' · ' + e.why + '</div>') +
+      (e.win ? '<h1>클리어!</h1><div class="sub">' + MN + ' · 들판에 평화가 왔어요' + (opened ? ' · <b>「' + opened + '」 열림!</b>' : '') + '</div>'
+        : e.endless ? '<h1>무한 모드 끝</h1><div class="sub">' + MN + ' · ' + e.wave + '웨이브까지 버텼어요 · ' + e.why + '</div>'
+        : '<h1>패배…</h1><div class="sub">' + MN + ' · ' + e.why + '</div>') +
       '<div class="parade" id="parade"></div>' +
       '<div class="stats">' +
-      '<div><b>' + e.wave + (e.endless ? '' : '/' + T.waves) + '</b><span>' + (e.endless ? '무한 웨이브' : '웨이브') + '</span></div>' +
+      '<div><b>' + e.wave + (e.endless ? '' : '/' + g.waves) + '</b><span>' + (e.endless ? '무한 웨이브' : '웨이브') + '</span></div>' +
       '<div><b>' + g.kills + '</b><span>토벌한 괴물</span></div>' +
       '<div><b>' + mmss(g.time) + '</b><span>' + (isBest ? '새 최고 기록!' : '버틴 시간') + '</span></div>' +
       '<div><b style="color:' + (g.bestGrade >= 0 ? GR[g.bestGrade].color : 'inherit') + '">' + (g.bestGrade >= 0 ? GR[g.bestGrade].name : '-') + '</b><span>최고 등급</span></div>' +
       '</div>' +
-      '<div class="rec">' + D.name + ' 최고 웨이브 ' + d.best + ' · 클리어 ' + (d.clears || 0) + '번' + (d.bestTime ? ' · 가장 빠른 클리어 ' + mmss(d.bestTime) : '') + (d.endless ? ' · 무한 ' + d.endless + '웨이브' : '') + ' (이 브라우저에만 저장)</div>' +
-      '<div class="row-btns">' + (e.win ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>' +
+      '<div class="rec">' + (g.mode === 'daily' ? '오늘 최고 웨이브 ' : MN + ' 최고 웨이브 ') + d.best + ' · 클리어 ' + (d.clears || 0) + '번' + (d.bestTime ? ' · 가장 빠른 클리어 ' + mmss(d.bestTime) : '') + (d.endless ? ' · 무한 ' + d.endless + '웨이브' : '') + ' (이 브라우저에만 저장)</div>' +
+      '<div class="row-btns">' + (e.win && g.mode === 'normal' ? '<button class="btn pink" id="endlessBtn">무한 모드로 계속</button>' : '') + '<button class="btn" id="againBtn">다시 하기</button><button class="btn sky" id="homeBtn">처음으로</button></div>' +
       iaHtml('lineHtml')
     );
     btn('endlessBtn', () => { if (g.goEndless()) { endInfo = null; close(); phase = 'play'; onEvents(); } });
@@ -1491,7 +1523,8 @@
     const seed = nextSeed || +Q.get('seed') || undefined;
     nextSeed = 0;
     endInfo = null;
-    g = new Core.Game({ seed, diff: diffSel, map: mapSel });
+    if (modeSel === 'daily') { const D = dailySetup(); g = new Core.Game({ seed: D.seed, diff: D.diff, map: D.map, chips: D.chips, mode: 'daily' }); }
+    else g = new Core.Game({ seed, diff: diffSel, map: mapSel, mode: modeSel });
     bakeFloor();
     setBg(g.diff);
     if (window.PFX) PFX.clear();
@@ -1583,6 +1616,7 @@
     if (TIL.ready) topHi = TIL.top(BW, PAD);
     setTimeout(() => $('loading').classList.add('done'), 150);
     mapSel = Math.min(T.maps.length - 1, Math.max(0, +rec().map || 0));
+    modeSel = T.modes[rec().mode] ? rec().mode : 'normal';
     g = new Core.Game({ seed: 1, map: mapSel });   // 시작 화면 뒤에 빈 판을 보여 주려고 (고른 지형)
     bakeFloor();
     fit();

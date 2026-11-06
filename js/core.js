@@ -101,6 +101,9 @@
     this.diff = opt.diff == null ? 1 : opt.diff;
     this.chips = opt.chips || rollChips(this.diff, this.seed);
     this.map = T.maps[opt.map] ? opt.map : 0;
+    this.mode = T.modes[opt.mode] ? opt.mode : 'normal';
+    const MD = (this.MD = T.modes[this.mode]);
+    this.waves = MD.waves || T.waves;
     const MP = T.maps[this.map];
     this.m = mods(this.diff, this.chips);
     this.m.hp *= MP.hp || 1;   // 지형마다 자리 수 · 길 길이가 달라 체력으로 맞춤
@@ -121,7 +124,7 @@
     this.charIdx = {};
     T.chars.forEach((c, i) => (this.charIdx[c.id] = i));
     this.lv = T.upgrade.base.map(() => 0);   // 강화 계열별 단계 (신화는 전설 계열 — T.upGroup)
-    this.coins = Math.round(T.startCoins * this.m.start);
+    this.coins = Math.round(T.startCoins * this.m.start * (MD.start || 1));
     this.summons = 0;
     this.oddsLv = 0;          // 소환 확률 레벨
     this.clovers = T.luck.start;
@@ -171,8 +174,9 @@
     for (const e of this.enemies) n += e.kind === 'boss' ? T.bossWeight : 1;
     return n;
   };
-  G.isBossWave = function (w) { return w % T.bossEvery === 0; };
-  G.bossType = function (w) { return T.bosses[(Math.max(1, Math.floor(w / T.bossEvery)) - 1) % T.bosses.length]; };
+  G.isBossWave = function (w) { return this.MD.bossAll || w % T.bossEvery === 0; };
+  // 보스 차례: 기본은 5 · 10 · 15 · 20 웨이브 → 침묵 · 소환 · 회복 · 셔플, 보스 러시는 웨이브마다 차례로
+  G.bossType = function (w) { const n = this.MD.bossAll ? w : Math.max(1, Math.floor(w / T.bossEvery)); return T.bosses[(n - 1) % T.bosses.length]; };
 
   G.pick1 = function (arr) { return arr[Math.floor(this.rand() * arr.length)]; };
   G.newUnit = function (ch, g, myth) {
@@ -388,10 +392,11 @@
   // 웨이브 특성: from 이 지난 것 중 1개(8웨이브부터 2개). 막 열린 특성은 그 웨이브에 꼭, 바로 앞과 같은 조합은 피함
   G.planWave = function (w) {
     if (this.plan[w]) return this.plan[w];
-    const open = Object.keys(T.traits).filter((k) => w >= T.traits[k].from);
-    const n = Math.min(open.length, w >= 8 ? 2 : 1);
+    const K = this.MD.waveK || 1, we = w * K;   // 보스 러시는 특성도 「몇 웨이브 뒤」 처럼 열림
+    const open = Object.keys(T.traits).filter((k) => we >= T.traits[k].from);
+    const n = Math.min(open.length, we >= 8 ? 2 : 1);
     const prev = (this.plan[w - 1] || []).join();
-    const fresh = open.find((k) => T.traits[k].from === w);
+    const fresh = open.find((k) => T.traits[k].from > we - K && T.traits[k].from <= we);
     let o = [];
     for (let tries = 0; tries < 8; tries++) {
       const pool = open.slice();
@@ -409,10 +414,11 @@
     this.wave++;
     const w = this.wave, E = T.enemy;
     const q = [];
-    const n = Math.round(E.count(w) * this.m.count);
+    const wk = w * (this.MD.waveK || 1);   // 보스 러시: 10웨이브가 기본의 20웨이브만큼 세게
+    const n = Math.round(E.count(wk) * this.m.count * (this.MD.count || 1));
     const boss = this.isBossWave(w);
     const tr = this.planWave(w);
-    const tankP = w >= E.kinds.tank.from ? 0.14 : 0;
+    const tankP = wk >= E.kinds.tank.from ? 0.14 : 0;
     for (let i = 0; i < n; i++) {
       const k = this.rand() < tankP ? 'tank' : 'blob';
       let t = null;
@@ -422,7 +428,7 @@
     if (boss) q.splice(Math.floor(n / 2), 0, { k: 'boss', t: null });
     this.spawnQ = q;
     this.spawnT = 0;
-    this.tWave = w >= T.waves && !this.endless ? T.finalTime : w <= T.earlyWaves ? T.earlyTime : T.waveTime;
+    this.tWave = w >= this.waves && !this.endless ? T.finalTime : this.MD.waveTime || (w <= T.earlyWaves ? T.earlyTime : T.waveTime);
     if (w > 1) {
       // 이자: 지금 가진 동전의 rate (상한 cap) — 웨이브 보상과 같이
       const it = Math.min(T.interest.cap, Math.floor(this.coins * T.interest.rate));
@@ -430,13 +436,13 @@
       this.emit('interest', { coins: it, wave: T.reward.wave });
     }
     this.planWave(w + 1);
-    this.emit('wave', { n: w, boss, last: w >= T.waves && !this.endless, traits: tr, bt: boss ? this.bossType(w).key : null });
+    this.emit('wave', { n: w, boss, last: w >= this.waves && !this.endless, traits: tr, bt: boss ? this.bossType(w).key : null });
   };
   G.spawn = function (q, at) {
     const k = q.k, t = q.t, K = T.enemy.kinds[k], TR = t ? T.traits[t] : null;
-    let hp = this.waveHp(this.wave) * K.hp;
+    let hp = this.waveHp(this.wave * (this.MD.waveK || 1)) * K.hp;
     if (TR && TR.hp && (t === 'fast')) hp *= TR.hp;
-    if (k === 'boss') hp *= this.m.bossHp;
+    if (k === 'boss') hp *= this.m.bossHp * (this.MD.bossHp || 1);
     if (q.small) hp = q.hp;
     const sp = T.enemy.speed * K.speed * this.m.speed * (TR && TR.speed ? TR.speed : 1) * (q.small ? 1.15 : 1);
     const e = { id: this.nextId++, kind: k, trait: t, small: !!q.small, hp, max: hp, d: at || 0, sp, slowT: 0, slow: 0, burnT: 0, burn: 0, psn: 0, psnT: 0, hitT: 0, stunT: 0, downT: 0, x: 0.5, y: 0.5, dir: 0, wave: this.wave };
@@ -575,7 +581,7 @@
     if (e.kind === 'boss') {
       this.clovers += T.luck.boss;
       // 마지막 웨이브의 보스를 잡으면 클리어 (무한 모드엔 끝이 없음) — 아니면 3택 보상
-      if (e.wave >= T.waves && !this.endless) this.won = true;
+      if (e.wave >= this.waves && !this.endless) this.won = true;
       else { this.pick = this.makeCards(); this.emit('pick', { cards: this.pick }); }
     }
   };
@@ -668,7 +674,7 @@
     // 웨이브 시계
     this.tWave -= dt;
     if (this.tWave <= 0) {
-      if (this.wave >= T.waves && !this.endless) return this.end('lose', '마지막 보스를 시간 안에 못 잡았어요');
+      if (this.wave >= this.waves && !this.endless) return this.end('lose', '마지막 보스를 시간 안에 못 잡았어요');
       this.startWave();
     }
     if (this.spawnQ.length) {
@@ -756,7 +762,7 @@
   G.state = function () {
     const b = this.enemies.find((e) => e.bs);
     return {
-      wave: this.wave, waves: T.waves, tWave: this.tWave, coins: this.coins, cost: this.cost(),
+      wave: this.wave, waves: this.waves, tWave: this.tWave, coins: this.coins, cost: this.cost(),
       load: this.load(), cap: this.cap, over: this.over, kills: this.kills, time: this.time,
       units: this.slots.map((s) => (s.u ? { ch: s.u.ch, g: s.u.g, myth: s.u.myth, sil: s.u.silT > 0 } : null)),
       enemies: this.enemies.length, lv: this.lv.slice(),
