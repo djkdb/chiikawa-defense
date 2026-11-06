@@ -174,6 +174,11 @@ table.grades th{background:var(--sky-bg-2)}
 .info .odds{font-size:11px;color:var(--ui-mute)}
 /* 난이도 */
 .diffs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 4px}
+/* 지형 고르기 — 시작 화면 난이도 아래 한 줄 */
+.maps{display:flex;gap:6px;align-items:center;justify-content:center;margin:4px 0 2px;flex-wrap:wrap}
+.maps .sub{font-size:12px}
+.mapb{min-height:36px;padding:2px 12px;border:2.5px solid var(--ink);border-radius:10px;background:#fff;font:13px var(--f-b);color:var(--ink);box-shadow:0 2px 0 var(--ink);cursor:pointer}
+.mapb.on{background:linear-gradient(#e2f6d5,#bfe8a4 60%);border-color:#3d7a2e}
 .diff{display:flex;flex-direction:column;gap:1px;padding:9px 12px;text-align:left;box-shadow:inset 0 -4px 0 var(--c),var(--ui-shadow)}
 .diff b{font:15px var(--f-b);color:var(--c)}
 .diff span{font-size:11px;color:var(--ui-mute);line-height:1.3}

@@ -16,13 +16,12 @@
     };
   }
 
-  // 길: 왼쪽 위 칸 가운데에서 시작해 시계 방향으로 한 바퀴
-  function makePath(cols, rows) {
-    const a = 0.5, r = cols - 0.5, b = rows - 0.5;
-    const pts = [[a, a], [r, a], [r, b], [a, b], [a, a]];
-    const segs = [];
+  // 길: 지형(T.maps)의 꺾이는 칸 목록을 차례로 잇는 닫힌 고리 — 첫 칸(괴물 굴)에서 시작해 한 바퀴
+  function makePath(corners) {
+    const pts = corners.concat([corners[0]]).map(([i, j]) => [i + 0.5, j + 0.5]);
+    const a = pts[0][0], segs = [];
     let len = 0;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < pts.length - 1; i++) {
       const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
       const l = Math.abs(x1 - x0) + Math.abs(y1 - y0);
       segs.push({ x0, y0, x1, y1, l, s: len });
@@ -38,9 +37,33 @@
             return { x: s.x0 + (s.x1 - s.x0) * k, y: s.y0 + (s.y1 - s.y0) * k, dir: s.x1 > s.x0 ? 0 : s.y1 > s.y0 ? 1 : s.x1 < s.x0 ? 2 : 3 };
           }
         }
-        return { x: a, y: a, dir: 0 };
+        return { x: a, y: pts[0][1], dir: 0 };
       },
     };
+  }
+
+  // 길이 지나는 칸 → 그 칸이 이어지는 방향(N·E·S·W). 바닥 그림이 직선 · 모서리 타일을 고를 때 씀
+  function pathCells(corners) {
+    const m = new Map(), n = corners.length;
+    const add = (i, j, d) => { const k = i + ',' + j; if (!m.has(k)) m.set(k, { i, j, n: 0, e: 0, s: 0, w: 0 }); m.get(k)[d] = 1; };
+    for (let c = 0; c < n; c++) {
+      const [i0, j0] = corners[c], [i1, j1] = corners[(c + 1) % n];
+      const di = Math.sign(i1 - i0), dj = Math.sign(j1 - j0);
+      for (let i = i0, j = j0; i !== i1 || j !== j1; i += di, j += dj) {
+        add(i, j, di > 0 ? 'e' : di < 0 ? 'w' : dj > 0 ? 's' : 'n');
+        add(i + di, j + dj, di > 0 ? 'w' : di < 0 ? 'e' : dj > 0 ? 'n' : 's');
+      }
+    }
+    return m;
+  }
+  function distToPath(path, x, y) {
+    let best = 1e9;
+    for (const s of path.segs) {
+      const dx = s.x1 - s.x0, dy = s.y1 - s.y0, L2 = dx * dx + dy * dy;
+      const k = L2 ? Math.max(0, Math.min(1, ((x - s.x0) * dx + (y - s.y0) * dy) / L2)) : 0;
+      best = Math.min(best, Math.hypot(x - (s.x0 + dx * k), y - (s.y0 + dy * k)));
+    }
+    return best;
   }
 
   // 난이도 · 변수 칩 → 판 전체에 곱하는 값 하나로
@@ -77,14 +100,24 @@
     this.rand = rng(this.seed);
     this.diff = opt.diff == null ? 1 : opt.diff;
     this.chips = opt.chips || rollChips(this.diff, this.seed);
+    this.map = T.maps[opt.map] ? opt.map : 0;
+    const MP = T.maps[this.map];
     this.m = mods(this.diff, this.chips);
+    this.m.hp *= MP.hp || 1;   // 지형마다 자리 수 · 길 길이가 달라 체력으로 맞춤
     this.cap = this.m.cap;
     const { cols, rows } = T.board;
     this.cols = cols; this.rows = rows;
-    this.path = makePath(cols, rows);
+    this.path = makePath(MP.path);
+    // 친구 자리 = 길도 아니고 막힌 칸(덤불 · 바위)도 아닌 칸. 줄마다 왼쪽부터 (칸 번호는 이 순서)
+    this.pathCells = pathCells(MP.path);
+    const block = new Set((MP.block || []).map(([i, j]) => i + ',' + j));
     this.slots = [];
-    // reach = 칸에서 길까지 가장 가까운 거리. 안쪽 칸(가운데 두 줄)은 2칸이라 사거리 짧은 친구(우사기 1.8 · 시사 1.9)는 길에 닿지 않음
-    for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) this.slots.push({ x: x + 0.5, y: y + 0.5, u: null, reach: Math.min(x, y, cols - 1 - x, rows - 1 - y) });
+    // reach = 칸 가운데에서 길(선)까지 가장 가까운 거리. 2칸 떨어진 칸에선 사거리 짧은 친구(우사기 1.8 · 시사 1.9)가 길에 닿지 않음
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const k = x + ',' + y;
+      if (this.pathCells.has(k) || block.has(k)) continue;
+      this.slots.push({ x: x + 0.5, y: y + 0.5, u: null, reach: Math.round(distToPath(this.path, x + 0.5, y + 0.5) * 100) / 100 });
+    }
     this.charIdx = {};
     T.chars.forEach((c, i) => (this.charIdx[c.id] = i));
     this.lv = T.upgrade.base.map(() => 0);   // 강화 계열별 단계 (신화는 전설 계열 — T.upGroup)

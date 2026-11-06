@@ -222,7 +222,8 @@
     pad: '#fff6e3', padD: '#efdcbc', padL: '#ffffff',
     cave: '#5b4b84', caveD: '#3a2d50', caveL: '#7a68a6',
   };
-  function floor(cols, rows, seed) {
+  // G = 판(core.Game) — 길 칸 · 친구 자리를 지형마다 읽음
+  function floor(cols, rows, seed, G) {
     let s = seed || 7;
     const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
     const W = cols * TILE, H = rows * TILE;
@@ -236,54 +237,47 @@
       const X = Math.floor(r() * W), Y = Math.floor(r() * H);
       x.fillStyle = FLOOR.grassD; x.fillRect(X, Y, 1, 2); x.fillRect(X + 2, Y + 1, 1, 1);
     }
-    // 길 (가장자리 링) — 칸 가운데 줄을 따라 굵은 모래 띠
+    // 길: 칸마다 가운데 모래 띠 + 이어지는 쪽으로 반 칸 (지형마다 G.pathCells)
     const band = 26, o = (TILE - band) / 2;
-    const ring = (inset, col) => {
+    const cell = (c, inset, col) => {
+      const X = c.i * TILE, Y = c.j * TILE;
       x.fillStyle = col;
-      x.fillRect(o + inset, o + inset, W - 2 * (o + inset), band - 2 * inset);
-      x.fillRect(o + inset, H - o - band + inset, W - 2 * (o + inset), band - 2 * inset);
-      x.fillRect(o + inset, o + inset, band - 2 * inset, H - 2 * (o + inset));
-      x.fillRect(W - o - band + inset, o + inset, band - 2 * inset, H - 2 * (o + inset));
+      x.fillRect(X + o + inset, Y + o + inset, band - 2 * inset, band - 2 * inset);
+      if (c.e) x.fillRect(X + TILE / 2, Y + o + inset, TILE / 2, band - 2 * inset);
+      if (c.w) x.fillRect(X, Y + o + inset, TILE / 2, band - 2 * inset);
+      if (c.s) x.fillRect(X + o + inset, Y + TILE / 2, band - 2 * inset, TILE / 2);
+      if (c.n) x.fillRect(X + o + inset, Y, band - 2 * inset, TILE / 2);
     };
-    ring(-2, FLOOR.edge);
-    ring(0, FLOOR.sand);
-    // 길 가운데 밝은 바퀴 자국
-    x.fillStyle = FLOOR.sandL;
-    for (let i = TILE / 2; i < W - TILE / 2; i += 6) { x.fillRect(i, TILE / 2 - 1, 3, 2); x.fillRect(i, H - TILE / 2 - 1, 3, 2); }
-    for (let j = TILE / 2; j < H - TILE / 2; j += 6) { x.fillRect(TILE / 2 - 1, j, 2, 3); x.fillRect(W - TILE / 2 - 1, j, 2, 3); }
-    // 안쪽 모서리를 둥글게 (풀 색으로 깎기)
-    const innerR = (cx, cy) => { x.fillStyle = FLOOR.grassA; x.fillRect(cx, cy, 2, 2); };
+    const cells = Array.from(G.pathCells.values());
+    cells.forEach((c) => cell(c, -2, FLOOR.edge));
+    cells.forEach((c) => cell(c, 0, FLOOR.sand));
     // 자갈
     for (let k = 0; k < 40; k++) {
-      const t = r() * 2 * (cols + rows - 2) * TILE;
-      let X, Y;
-      const per = [W - TILE, H - TILE, W - TILE, H - TILE];
-      let d = t, side = 0;
-      while (d > per[side]) { d -= per[side]; side = (side + 1) % 4; }
-      const off = (r() - 0.5) * (band - 8);
-      if (side === 0) { X = TILE / 2 + d; Y = TILE / 2 + off; }
-      else if (side === 1) { X = W - TILE / 2 + off; Y = TILE / 2 + d; }
-      else if (side === 2) { X = W - TILE / 2 - d; Y = H - TILE / 2 + off; }
-      else { X = TILE / 2 + off; Y = H - TILE / 2 - d; }
-      x.fillStyle = FLOOR.pebble; x.fillRect(Math.round(X), Math.round(Y), 2, 1);
-      x.fillStyle = FLOOR.sandD; x.fillRect(Math.round(X), Math.round(Y) + 1, 2, 1);
+      const c = cells[Math.floor(r() * cells.length)];
+      const X = Math.round(c.i * TILE + o + 3 + r() * (band - 6)), Y = Math.round(c.j * TILE + o + 3 + r() * (band - 6));
+      x.fillStyle = FLOOR.pebble; x.fillRect(X, Y, 2, 1);
+      x.fillStyle = FLOOR.sandD; x.fillRect(X, Y + 1, 2, 1);
     }
-    innerR(0, 0);
-    // 안쪽 풀밭의 작은 꽃
+    // 작은 꽃 (친구 자리 위)
     for (let k = 0; k < 10; k++) {
-      const X = TILE + 3 + Math.floor(r() * (W - 2 * TILE - 8)), Y = TILE + 3 + Math.floor(r() * (H - 2 * TILE - 8));
+      const sl = G.slots[Math.floor(r() * G.slots.length)];
+      const X = Math.floor(sl.x - 0.5) * TILE + 6 + Math.floor(r() * (TILE - 14)), Y = Math.floor(sl.y - 0.5) * TILE + 6 + Math.floor(r() * (TILE - 14));
       const col = [FLOOR.flowerP, FLOOR.flowerW, FLOOR.flowerY][k % 3];
       px(x, X, Y, ['.c.', 'cyc', '.c.'], { c: col, y: col === FLOOR.flowerY ? FLOOR.flowerW : FLOOR.flowerY });
     }
-    // 받침(아군 자리) — 둥근 크림 방석
-    for (let j = 1; j < rows - 1; j++) for (let i = 1; i < cols - 1; i++) {
+    // 받침(아군 자리) — 둥근 방석 · 막힌 칸은 덤불 덩이
+    const slotSet = new Set(G.slots.map((sl) => Math.floor(sl.x) + ',' + Math.floor(sl.y)));
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const k = i + ',' + j;
+      if (G.pathCells.has(k)) continue;
+      if (!slotSet.has(k)) { blob(x, ell(i * TILE + 16, j * TILE + 17, 11, 9), FLOOR.grassD, 2.4); continue; }
       const X = i * TILE + 3, Y = j * TILE + 4, w = TILE - 6, h = TILE - 7;
       x.fillStyle = FLOOR.padD; roundRect(x, X, Y + 1, w, h, 6); x.fill();
       x.fillStyle = FLOOR.pad; roundRect(x, X, Y, w, h - 1, 6); x.fill();
       x.fillStyle = FLOOR.padL; x.fillRect(X + 5, Y + 2, w - 10, 1);
     }
-    // 괴물 굴 (출발점, 왼쪽 위)
-    const cx = TILE / 2, cy = TILE / 2;
+    // 괴물 굴 (출발점 = 길 첫 칸)
+    const p0 = G.path.at(0), cx = p0.x * TILE, cy = p0.y * TILE;
     x.fillStyle = INK; roundRect(x, cx - 11, cy - 10, 22, 16, 8); x.fill();
     x.fillStyle = FLOOR.caveL; roundRect(x, cx - 9, cy - 8, 18, 13, 7); x.fill();
     x.fillStyle = FLOOR.caveD; roundRect(x, cx - 7, cy - 5, 14, 10, 6); x.fill();
@@ -440,7 +434,8 @@
     };
     A.flash = new Map();
     A.flashOf = (c) => { let f = A.flash.get(c); if (!f) { f = flashOf(c); A.flash.set(c, f); } return f; };
-    A.floor = floor(T.board.cols, T.board.rows, 11);
+    A.floor = null;   // 지형마다 game.js 가 A.makeFloor(판) 으로 구움
+    A.makeFloor = (G) => floor(T.board.cols, T.board.rows, 11, G);
     A.top = topStrip(T.board.cols * TILE, 22);
     A.shot = {};
     for (const k in SHOT) A.shot[k] = SHOT[k]();

@@ -23,7 +23,7 @@
 
   let g = null;
   let phase = 'title';          // title | play | pause | pick | end
-  let diffSel = 1, nextSeed = 0, firstTitle = true; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
+  let diffSel = 1, nextSeed = 0, firstTitle = true, mapSel = 0; // 시작 화면에서 고른 난이도 · 그 판 씨앗(변수 칩을 미리 보여 주려고 먼저 정함)
   const TR = T.traits, BOSS = {};
   T.bosses.forEach((b) => (BOSS[b.key] = b));
   let sel = -1, drag = null, hover = -1;
@@ -1156,10 +1156,12 @@
     const r = cvs.getBoundingClientRect();
     return { ax: ((ev.clientX - r.left) / r.width) * BW, ay: ((ev.clientY - r.top) / r.height) * BH - PAD };
   }
+  // 누른 자리 → 친구 칸 번호 (지형마다 자리가 달라 칸 → 번호 표를 판마다 만듦)
+  let slotIdx = null, slotIdxOf = null;
   function slotAt(ax, ay) {
-    const i = Math.floor(ax / TILE), j = Math.floor(ay / TILE);
-    if (i < 1 || j < 1 || i > COLS - 2 || j > ROWS - 2) return -1;
-    return (j - 1) * (COLS - 2) + (i - 1);
+    if (slotIdxOf !== g) { slotIdxOf = g; slotIdx = new Map(g.slots.map((s, n) => [Math.floor(s.x) + ',' + Math.floor(s.y), n])); }
+    const n = slotIdx.get(Math.floor(ax / TILE) + ',' + Math.floor(ay / TILE));
+    return n == null ? -1 : n;
   }
   cvs.addEventListener('pointerdown', (ev) => {
     if (!g || phase !== 'play') return;
@@ -1246,14 +1248,24 @@
         '<em>' + (d.plays ? '최고 ' + (d.clears ? '클리어' + (d.endless ? ' · 무한 ' + d.endless : '') : d.best + '웨이브') : '기록 없음') + '</em></button>';
     });
     h += '</div><div class="vchips" id="vchips"></div>';
+    // 지형 — 누르면 뒤의 판도 그 지형으로 바뀜
+    h += '<div class="maps" id="maps"><span class="sub">지형</span>' + T.maps.map((M, i) => '<button class="mapb' + (i === mapSel ? ' on' : '') + '" data-m="' + i + '" aria-pressed="' + (i === mapSel) + '" title="' + M.desc + '">' + M.name + '</button>').join('') + '</div>';
     return h;
+  }
+  function pickMap(i) {
+    mapSel = i;
+    sheet.querySelectorAll('.mapb').forEach((b) => { const on = +b.dataset.m === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const r = rec(); r.map = i; saveRec(r);
+    g = new Core.Game({ seed: 1, map: i });
+    bakeFloor();
+    const v = $('vchips'); if (v && v.firstChild) v.firstChild.textContent = T.diffs[diffSel].name + ' · ' + T.maps[i].name + ' — ' + T.maps[i].desc;
   }
   function pickDiff(i) {
     diffSel = i;
     setBg(i);
     sheet.querySelectorAll('.diff').forEach((b) => { const on = +b.dataset.i === i; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
     const D = T.diffs[i], chips = Core.rollChips(i, nextSeed);
-    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
+    $('vchips').innerHTML = '<div class="sub">' + D.name + ' · 괴물 체력 ×' + D.hp + ' · 길 위 한도 ' + D.cap + (mapSel ? ' · ' + T.maps[mapSel].name : '') + '</div>' + (D.chips[1] ? '<div class="sub">이번 판 변수 칩</div>' + chipHtml(chips) : '');
   }
   // 판 뒤 배경: 쉬움 · 보통 = 낮 들판, 어려움 · 지옥 = 밤 숲 (index.html 의 body.bg-day / bg-night)
   function setBg(d) { document.body.classList.toggle('bg-night', d >= 2); document.body.classList.toggle('bg-day', d < 2); }
@@ -1287,6 +1299,7 @@
     );
     parade($('parade'), T.chars.map((c) => c.id));
     sheet.querySelectorAll('.diff').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.unlock(); S.play('pick'); pickDiff(+b.dataset.i); } }));
+    sheet.querySelectorAll('.mapb').forEach((b) => b.addEventListener('click', () => { S.unlock(); S.play('pick'); pickMap(+b.dataset.m); }));
     pickDiff(diffSel);
     btn('startBtn', start);
     btn('codexBtn', () => codexScreen(false));
@@ -1466,11 +1479,20 @@
     for (const e of g.ev) { if (e.type === 'gamble') S.play(e.win ? 'luckwin' : 'lucklose'); }
   }
 
+  // 판 바닥은 지형마다 다시 구움 (타일 그림이 없으면 art.js 의 그린 바닥)
+  let floorMap = -1;
+  function bakeFloor() {
+    if (!g || g.map === floorMap) return;
+    floorMap = g.map;
+    if (TIL.ready) floorHi = TIL.floor(COLS, ROWS, TILE, 11, g);
+    else A.floor = A.makeFloor(g);
+  }
   function start() {
     const seed = nextSeed || +Q.get('seed') || undefined;
     nextSeed = 0;
     endInfo = null;
-    g = new Core.Game({ seed, diff: diffSel });
+    g = new Core.Game({ seed, diff: diffSel, map: mapSel });
+    bakeFloor();
     setBg(g.diff);
     if (window.PFX) PFX.clear();
     view.an.clear(); txtAt.clear(); view.fx = []; view.texts = []; view.flyGhosts = []; view.cards = [];
@@ -1558,9 +1580,11 @@
   A.loadChars(T.chars, loaded); MON.load(loaded); TIL.load(loaded);
   function boot() {
     loadStep(1);
-    if (TIL.ready) { floorHi = TIL.floor(COLS, ROWS, TILE, 11); topHi = TIL.top(BW, PAD); }
+    if (TIL.ready) topHi = TIL.top(BW, PAD);
     setTimeout(() => $('loading').classList.add('done'), 150);
-    g = new Core.Game({ seed: 1 });   // 시작 화면 뒤에 빈 판을 보여 주려고
+    mapSel = Math.min(T.maps.length - 1, Math.max(0, +rec().map || 0));
+    g = new Core.Game({ seed: 1, map: mapSel });   // 시작 화면 뒤에 빈 판을 보여 주려고 (고른 지형)
+    bakeFloor();
     fit();
     titleScreen();
     booted = true;

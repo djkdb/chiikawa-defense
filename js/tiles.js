@@ -40,28 +40,34 @@
   }
 
   // 바닥 한 장 (cols×rows 칸, 칸 = T 도트) — 고해상도 캔버스. 그릴 땐 도트 크기로 줄여 그림
-  TL.floor = function (cols, rows, T, seed) {
+  // G = 판(core.Game): pathCells(칸 → 이어지는 방향) · slots · 길 첫 칸으로 지형마다 굽기
+  TL.floor = function (cols, rows, T, seed, G) {
     let s = seed || 7;
     const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
     const c = cv(cols * T * R, rows * T * R), x = c.getContext('2d');
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
     x.fillStyle = '#9fcf6a'; x.fillRect(0, 0, c.width, c.height);
-    // 안쪽 친구 자리: 보통 풀밭이 대부분, 가끔 꽃 칸 (돌 · 덤불 칸은 친구가 서기엔 어수선해서 뺌)
-    const deco = ['grass_f1', 'grass_f2', 'grass_f3'];
-    for (let j = 1; j < rows - 1; j++) for (let i = 1; i < cols - 1; i++) {
+    // 친구 자리: 보통 풀밭이 대부분, 가끔 꽃 칸 (돌 · 덤불 칸은 친구가 서기엔 어수선해서 뺌). 막힌 칸은 풀밭 위에 덤불 · 바위 · 그루터기
+    const deco = ['grass_f1', 'grass_f2', 'grass_f3'], props = ['bush_b', 'rock_m', 'stump', 'bush_g', 'log_moss', 'mush_red', 'rocks', 'flowers_big'];
+    const slot = new Set(G.slots.map((s) => Math.floor(s.x) + ',' + Math.floor(s.y)));
+    let pk = 0;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const k = i + ',' + j;
+      if (G.pathCells.has(k)) continue;
       const r = rnd();
-      put(x, TL.img[r < 0.7 ? 'grass' : deco[Math.floor(rnd() * deco.length)]] || TL.img.grass, i, j, T);
+      put(x, TL.img[r < 0.7 || !slot.has(k) ? 'grass' : deco[Math.floor(rnd() * deco.length)]] || TL.img.grass, i, j, T);
+      if (!slot.has(k)) prop(x, props[pk++ % props.length], (i + 0.5) * T, (j + 0.85) * T, T * 0.8, rnd() < 0.5);
     }
-    // 괴물 길: 모서리(dirt_c1 = 오른쪽·아래로 이어짐)를 뒤집어 네 방향
-    const L = cols - 1, B = rows - 1;
-    for (let i = 1; i < L; i++) { put(x, TL.img.dirt_h, i, 0, T); put(x, TL.img.dirt_h, i, B, T, false, true); }
-    for (let j = 1; j < B; j++) { put(x, TL.img.dirt_v, 0, j, T); put(x, TL.img.dirt_v, L, j, T, true); }
-    put(x, TL.img.dirt_c1, 0, 0, T);
-    put(x, TL.img.dirt_c1, L, 0, T, true);
-    put(x, TL.img.dirt_c1, L, B, T, true, true);
-    put(x, TL.img.dirt_c1, 0, B, T, false, true);
-    // 괴물 굴 (출발점) — 왼쪽 위 모서리
-    prop(x, 'cave', T * 0.5, T * 0.78, T * 0.62);
+    // 괴물 길: 칸마다 이어지는 방향으로 직선(dirt_h · dirt_v) · 모서리(dirt_c1 = 오른쪽·아래로 이어짐을 뒤집어 네 방향)
+    for (const c of G.pathCells.values()) {
+      const top = c.j < rows / 2, left = c.i < cols / 2;
+      if (c.e && c.w) put(x, TL.img.dirt_h, c.i, c.j, T, false, !top);
+      else if (c.n && c.s) put(x, TL.img.dirt_v, c.i, c.j, T, !left);
+      else put(x, TL.img.dirt_c1, c.i, c.j, T, !!c.w, !!c.n);
+    }
+    // 괴물 굴 (출발점) — 길 첫 칸
+    const p0 = G.path.at(0);
+    prop(x, 'cave', p0.x * T, (p0.y + 0.28) * T, T * 0.62);
     return c;
   };
   // 판 위 여백 띠: 풀 + 울타리 + 양 끝 덤불 · 꽃

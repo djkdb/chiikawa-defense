@@ -2,6 +2,7 @@
      node tools/sim.js            # 씨앗 24개
      node tools/sim.js 40 --md    # 씨앗 40개 · README 에 붙일 표(마크다운)
      node tools/sim.js 24 --diff 3 --bot good   # 하나만
+     node tools/sim.js 40 --map 1               # 지형 (T.maps 번호, 기본 0 들판)
    목표 (README 「밸런스」):
      쉬움 = 느린 봇도 거의 클리어 · 보통 = 잘하는 봇 클리어 · 느린 봇 절반 · 어려움 = 잘하는 봇만 · 지옥 = 잘하는 봇도 일부만
    봇은 판을 읽기만 하고 사람이 누르는 것(소환·합성·강화·확률 업·행운 소환·신화 레시피·3택 보상)만 합니다.
@@ -77,8 +78,8 @@ const BOTS = {
 };
 const NAMES = { good: '잘하는 봇', slow: '느린 봇', casual: '대충 소환 봇', nomerge: '합성 안 하는 봇', idle: '가만히 봇' };
 
-function play(diff, bot, seed) {
-  const g = new Game({ seed, diff });
+function play(diff, bot, seed, map) {
+  const g = new Game({ seed, diff, map: map || 0 });
   let t = 0;
   const dt = 0.05;
   while (!g.over && t < 4000) { BOTS[bot](g, t); g.step(dt); t += dt; g.ev.length = 0; }
@@ -93,6 +94,7 @@ const N = +args.find((a) => /^\d+$/.test(a)) || 24;
 const md = args.includes('--md');
 const onlyD = args.includes('--diff') ? +args[args.indexOf('--diff') + 1] : null;
 const onlyB = args.includes('--bot') ? args[args.indexOf('--bot') + 1] : null;
+const MAP = args.includes('--map') ? +args[args.indexOf('--map') + 1] : 0;   // 지형 번호 (T.maps)
 const rows = [];
 T.diffs.forEach((D, di) => {
   if (onlyD != null && di !== onlyD) return;
@@ -101,7 +103,7 @@ T.diffs.forEach((D, di) => {
     let wins = 0, myth = 0;
     const waves = [], why = {};
     for (let s = 1; s <= N; s++) {
-      const g = play(di, name, s * 7919);
+      const g = play(di, name, s * 7919, MAP);
       if (g.over === 'win') wins++;
       if (g.made.length) myth++;
       waves.push(g.wave);
